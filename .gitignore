@@ -1,0 +1,17 @@
+# Copias automáticas de Blender: se regeneran solas en cada guardado
+*.blend1
+*.blend2
+
+# Renders de validación: son SALIDA, se rehacen en segundos con
+#   Blender --background blender/HABITACION_vNNN.blend --python blender/scripts/render_iso.py -- NOMBRE
+# Son 54 MB de PNG que no aportan nada al historial.
+blender/renders/
+
+# Basura del sistema
+.DS_Store
+__pycache__/
+*.pyc
+
+# Servidor local
+.venv/
+node_modules/

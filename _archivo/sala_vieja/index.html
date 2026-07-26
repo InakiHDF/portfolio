@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>La sala</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;
+    font-family:ui-monospace,"SF Mono",Menlo,monospace;color:#fff}
+  canvas{display:block}
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+  #label{position:absolute;left:18px;bottom:64px;font-size:13px;
+    letter-spacing:.2em;text-transform:uppercase;opacity:0;transition:opacity .35s}
+  #label.on{opacity:1}
+  #hint{position:absolute;left:18px;top:16px;font-size:11px;
+    letter-spacing:.14em;text-transform:uppercase;opacity:.5}
+  #back{position:absolute;left:18px;bottom:24px;font-size:11px;
+    letter-spacing:.16em;text-transform:uppercase;pointer-events:auto;
+    background:none;border:1px solid #fff;color:#fff;padding:8px 14px;
+    cursor:pointer;opacity:0;transition:opacity .3s;font-family:inherit}
+  #back.on{opacity:1}
+  #fx{position:fixed;right:0;bottom:0;display:flex;gap:1px;z-index:6}
+  #fx button{background:#111;color:#888;border:0;padding:9px 14px;font:inherit;
+    font-size:10px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+  #fx button.on{background:#fff;color:#000}
+  #err{position:fixed;left:0;right:0;top:0;background:#a11;padding:8px 14px;
+    font-size:11px;z-index:20;display:none;white-space:pre-wrap}
+</style></head><body>
+<div id="err"></div>
+<div id="hud">
+  <div id="hint">mové el mouse · clic en un objeto</div>
+  <div id="label"></div>
+  <button id="back">← volver</button>
+</div>
+<div id="fx">
+  <button data-e="psx" class="on">psx</button>
+  <button data-e="1bit">1bit</button>
+  <button data-e="crudo">crudo</button>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "./lib/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "./lib/loaders/GLTFLoader.js";
+import { buildRoom, buildLights } from "./room.js";
+
+const errBox = document.getElementById("err");
+const fail = m => { errBox.style.display = "block"; errBox.textContent = m; };
+window.addEventListener("error", e => fail("Error: " + e.message));
+
+const renderer = new THREE.WebGLRenderer({ antialias:false });
+renderer.setPixelRatio(1);
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x14120f);
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 160);
+
+const { mats, targets, stand, placeholder } = buildRoom(scene);
+buildLights(scene);
+
+new GLTFLoader().load("modelos/avatar.glb", g => {
+  placeholder.visible = false;
+  const o = g.scene;
+  let bb = new THREE.Box3().setFromObject(o);
+  const h = bb.max.y - bb.min.y;
+  if (h > 0) o.scale.setScalar(1.75/h);
+  o.updateMatrixWorld(true);
+  bb = new THREE.Box3().setFromObject(o);
+  o.position.y -= bb.min.y;
+  o.traverse(n => { if (n.isMesh && n.material){
+    (Array.isArray(n.material)?n.material:[n.material]).forEach(m => {
+      if (m.map){ m.map.magFilter = THREE.NearestFilter;
+        m.map.minFilter = THREE.NearestFilter;
+        m.map.generateMipmaps = false; m.map.needsUpdate = true; }
+      mats.push(m); }); }});
+  stand.add(o);
+  const hb = new THREE.Mesh(new THREE.BoxGeometry(.9,1.8,.6),
+    new THREE.MeshBasicMaterial({ visible:false }));
+  hb.position.y = .9; hb.userData.key = "mi"; hb.userData.name = "sobre mí";
+  stand.add(hb); targets.push(hb);
+  setFx(fx);
+  document.getElementById("hint").textContent = "avatar cargado · clic en un objeto";
+}, undefined, () => {
+  document.getElementById("hint").textContent =
+    "sin modelos/avatar.glb · figura de bloques";
+});
+
+const V = (x,y,z) => new THREE.Vector3(x,y,z);
+const QS = new URLSearchParams(location.search);
+const nums = (s,d) => { const a = (s||"").split(",").map(Number);
+  return (a.length===3 && a.every(n=>isFinite(n))) ? V(a[0],a[1],a[2]) : d; };
+const HOME = {
+  pos: nums(QS.get("cam"), V(0.55,3.35,6.10)),
+  tgt: nums(QS.get("tgt"), V(0.35,0.95,-2.60))
+};
+if (QS.get("fov")) camera.fov = Number(QS.get("fov"));
+const STATIONS = {
+  web:    { pos:V(-4.4,2.6,-2.5),  tgt:V(-5.1,1.95,-5.7) },
+  video:  { pos:V(5.4,2.9,-1.2),   tgt:V(6.4,2.85,-5.5) },
+  musica: { pos:V(4.6,2.3,-2.1),   tgt:V(7.6,2.2,-2.0) },
+  texto:  { pos:V(4.4,2.6,6.3),    tgt:V(5.3,1.35,3.4) },
+  mi:     { pos:V(-2.0,1.9,4.4),   tgt:V(-2.4,1.35,1.1) }
+};
+const KEYNAME = { web:"desarrollos web", video:"videos", musica:"música",
+  texto:"escritos", mi:"sobre mí" };
+
+let cur = HOME, zoomed = false;
+const camPos = HOME.pos.clone(), camTgt = HOME.tgt.clone();
+const mouse = new THREE.Vector2();
+const label = document.getElementById("label"), backBtn = document.getElementById("back");
+
+function goTo(k){ cur = STATIONS[k]; zoomed = true;
+  label.textContent = KEYNAME[k]; label.classList.add("on"); backBtn.classList.add("on"); }
+function goHome(){ cur = HOME; zoomed = false;
+  label.classList.remove("on"); backBtn.classList.remove("on"); }
+
+const ray = new THREE.Raycaster(), click = new THREE.Vector2();
+renderer.domElement.addEventListener("pointerdown", e => {
+  click.x = (e.clientX/VW)*2-1; click.y = -(e.clientY/VH)*2+1;
+  ray.setFromCamera(click, camera);
+  const h = ray.intersectObjects(targets, false)[0];
+  if (h && !zoomed) goTo(h.object.userData.key); else if (zoomed) goHome();
+});
+addEventListener("pointermove", e => {
+  mouse.x = (e.clientX/VW)*2-1; mouse.y = (e.clientY/VH)*2-1; });
+backBtn.addEventListener("click", e => { e.stopPropagation(); goHome(); });
+addEventListener("keydown", e => { if (e.key === "Escape") goHome(); });
+
+const BAYER = `
+float bayer(vec2 p){
+  int x=int(mod(p.x,4.0)); int y=int(mod(p.y,4.0)); int i=x+y*4;
+  float m[16];
+  m[0]=0.;m[1]=8.;m[2]=2.;m[3]=10.;m[4]=12.;m[5]=4.;m[6]=14.;m[7]=6.;
+  m[8]=3.;m[9]=11.;m[10]=1.;m[11]=9.;m[12]=15.;m[13]=7.;m[14]=13.;m[15]=5.;
+  float v=0.0; for(int k=0;k<16;k++){ if(k==i) v=m[k]; }
+  return (v+0.5)/16.0; }`;
+const VS = "varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }";
+const FRAG = {
+  psx: BAYER + `uniform sampler2D t; varying vec2 vUv;
+    void main(){ vec3 c=texture2D(t,vUv).rgb; float d=bayer(gl_FragCoord.xy);
+      c=floor(c*20.0+d)/20.0; gl_FragColor=vec4(c,1.0); }`,
+  "1bit": BAYER + `uniform sampler2D t; varying vec2 vUv;
+    void main(){ vec3 c=texture2D(t,vUv).rgb;
+      float l=dot(c,vec3(0.299,0.587,0.114));
+      l=clamp((l-0.04)*2.3,0.0,1.0); l=pow(l,0.7);
+      float v=step(bayer(gl_FragCoord.xy), l);
+      gl_FragColor=vec4(mix(vec3(0.05,0.048,0.06),vec3(0.92,0.915,0.87),v),1.0); }`
+};
+const RES = { psx:400, "1bit":460 };
+
+const SNAP = `
+  vec4 mvPosition = vec4( transformed, 1.0 );
+  #ifdef USE_SKINNING
+    mvPosition = vec4( skinned.xyz, 1.0 );
+  #endif
+  mvPosition = modelViewMatrix * mvPosition;
+  vec4 sp = projectionMatrix * mvPosition;
+  float gw = 120.0;
+  sp.xyz /= sp.w; sp.xy = floor(sp.xy*gw)/gw; sp.xyz *= sp.w;
+  gl_Position = sp;`;
+const DOSNAP = s => { s.vertexShader =
+  s.vertexShader.replace("#include <project_vertex>", SNAP); };
+const NOSNAP = function(){};
+
+let fx = "psx", rt = null, qscene = null, quad = null;
+const qcam = new THREE.Camera();
+let VW = 1280, VH = 720;
+
+function buildRT(){
+  if (!FRAG[fx]) { qscene = null; return; }
+  const w = RES[fx], h = Math.max(2, Math.round(w / (VW/VH)));
+  if (rt) rt.dispose();
+  rt = new THREE.WebGLRenderTarget(w, h,
+    { minFilter:THREE.NearestFilter, magFilter:THREE.NearestFilter });
+  qscene = new THREE.Scene();
+  quad = new THREE.Mesh(new THREE.PlaneGeometry(2,2), new THREE.ShaderMaterial({
+    vertexShader:VS, fragmentShader:FRAG[fx], depthTest:false, depthWrite:false,
+    uniforms:{ t:{ value: rt.texture } } }));
+  quad.frustumCulled = false; qscene.add(quad);
+}
+function setFx(v){
+  fx = v;
+  mats.forEach(m => { m.onBeforeCompile = (v === "crudo") ? NOSNAP : DOSNAP;
+    m.needsUpdate = true; });
+  buildRT();
+  document.querySelectorAll("#fx button").forEach(b =>
+    b.classList.toggle("on", b.dataset.e === v));
+}
+document.querySelectorAll("#fx button").forEach(b =>
+  b.onclick = () => setFx(b.dataset.e));
+
+function resize(){
+  const de = document.documentElement;
+  const w = Math.max(1, window.innerWidth || de.clientWidth || 1280);
+  const h = Math.max(1, window.innerHeight || de.clientHeight || 720);
+  if (w === VW && h === VH && renderer.domElement.width) return;
+  VW = w; VH = h;
+  renderer.setSize(w,h);
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+  buildRT();
+}
+addEventListener("resize", resize);
+new ResizeObserver(resize).observe(document.documentElement);
+resize(); setFx(QS.get("fx") || "psx");
+
+const startAt = new URLSearchParams(location.search).get("goto");
+if (startAt && STATIONS[startAt]){
+  cur = STATIONS[startAt]; zoomed = true;
+  camPos.copy(cur.pos); camTgt.copy(cur.tgt);
+  label.textContent = KEYNAME[startAt]; label.classList.add("on");
+  backBtn.classList.add("on");
+}
+
+const _p = new THREE.Vector3();
+window.__dbg = () => ({ cam: camera.position.toArray().map(n=>+n.toFixed(2)),
+  tgt: camTgt.toArray().map(n=>+n.toFixed(2)), zoomed,
+  aspect:+camera.aspect.toFixed(3), targets: targets.length });
+
+function loop(){
+  requestAnimationFrame(loop);
+  const k = zoomed ? .07 : .05;
+  camPos.lerp(cur.pos, k); camTgt.lerp(cur.tgt, k);
+  const sway = zoomed ? .14 : .5;
+  _p.copy(camPos);
+  _p.x += mouse.x * sway;
+  _p.y += -mouse.y * sway * .45;
+  camera.position.copy(_p);
+  camera.lookAt(camTgt);
+  if (qscene){
+    renderer.setRenderTarget(rt); renderer.render(scene, camera);
+    renderer.setRenderTarget(null); renderer.render(qscene, qcam);
+  } else renderer.render(scene, camera);
+}
+loop();
+</script></body></html>

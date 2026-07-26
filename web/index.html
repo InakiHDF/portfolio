@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>La habitación</title>
+<style>
+  html, body { margin:0; height:100%; background:#0a0908; overflow:hidden;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; color:#e8e2d6; }
+  canvas { display:block; }
+
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:5; }
+  #titulo { position:absolute; left:22px; bottom:64px; font-size:13px;
+    letter-spacing:.22em; text-transform:uppercase; opacity:0;
+    transition:opacity .4s; text-shadow:0 2px 12px #000; }
+  #titulo.on { opacity:1; }
+  #volver { position:absolute; left:22px; bottom:26px; font-size:10px;
+    letter-spacing:.18em; text-transform:uppercase; pointer-events:auto;
+    background:rgba(0,0,0,.35); border:1px solid rgba(232,226,214,.5);
+    color:inherit; padding:9px 15px; cursor:pointer; opacity:0;
+    transition:opacity .3s; font-family:inherit; }
+  #volver.on { opacity:1; }
+  #pista { position:absolute; left:22px; top:20px; font-size:10px;
+    letter-spacing:.16em; text-transform:uppercase; opacity:.45; }
+
+  #carga { position:fixed; inset:0; display:flex; align-items:center;
+    justify-content:center; background:#0a0908; z-index:10; font-size:11px;
+    letter-spacing:.24em; text-transform:uppercase; transition:opacity .6s; }
+  #carga.listo { opacity:0; pointer-events:none; }
+
+  #error { position:fixed; left:0; right:0; top:0; background:#7a1f16;
+    padding:10px 16px; font-size:11px; z-index:20; display:none;
+    white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<div id="error"></div>
+<div id="carga">cargando</div>
+<div id="hud">
+  <div id="pista">clic en un objeto</div>
+  <div id="titulo"></div>
+  <button id="volver">← volver</button>
+</div>
+
+<script type="importmap">
+{ "imports": {
+    "three": "./lib/three.module.js",
+    "three/addons/": "./lib/addons/"
+} }
+</script>
+<script type="module" src="./sala.js"></script>
+</body>
+</html>

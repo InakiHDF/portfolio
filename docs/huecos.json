@@ -1,0 +1,646 @@
+{
+ "BOOK_FLOOR_STACK_01": {
+  "alto_cm": 30.0,
+  "ancho_cm": 40.0,
+  "lomo": false,
+  "proporcion": 1.3333,
+  "px_pantalla": 79
+ },
+ "BOOK_FLOOR_STACK_02": {
+  "alto_cm": 28.0,
+  "ancho_cm": 36.0,
+  "lomo": false,
+  "proporcion": 1.2857,
+  "px_pantalla": 72
+ },
+ "BOOK_FLOOR_STACK_03": {
+  "alto_cm": 24.0,
+  "ancho_cm": 30.0,
+  "lomo": false,
+  "proporcion": 1.25,
+  "px_pantalla": 61
+ },
+ "BOOK_NORTH_01": {
+  "alto_cm": 38.0,
+  "ancho_cm": 3.4,
+  "lomo": true,
+  "proporcion": 0.0895,
+  "px_pantalla": 58
+ },
+ "BOOK_NORTH_02": {
+  "alto_cm": 34.0,
+  "ancho_cm": 5.2,
+  "lomo": true,
+  "proporcion": 0.1529,
+  "px_pantalla": 54
+ },
+ "BOOK_NORTH_03": {
+  "alto_cm": 42.0,
+  "ancho_cm": 4.0,
+  "lomo": true,
+  "proporcion": 0.0952,
+  "px_pantalla": 64
+ },
+ "BOOK_NORTH_04": {
+  "alto_cm": 30.0,
+  "ancho_cm": 3.0,
+  "lomo": true,
+  "proporcion": 0.1,
+  "px_pantalla": 49
+ },
+ "BOOK_NORTH_05": {
+  "alto_cm": 36.0,
+  "ancho_cm": 5.8,
+  "lomo": true,
+  "proporcion": 0.1611,
+  "px_pantalla": 58
+ },
+ "BOOK_NORTH_06": {
+  "alto_cm": 40.0,
+  "ancho_cm": 3.6,
+  "lomo": true,
+  "proporcion": 0.09,
+  "px_pantalla": 62
+ },
+ "BOOK_NORTH_07": {
+  "alto_cm": 32.0,
+  "ancho_cm": 4.6,
+  "lomo": true,
+  "proporcion": 0.1438,
+  "px_pantalla": 53
+ },
+ "BOOK_NORTH_08": {
+  "alto_cm": 34.0,
+  "ancho_cm": 5.2,
+  "lomo": true,
+  "proporcion": 0.1529,
+  "px_pantalla": 61
+ },
+ "BOOK_NORTH_09": {
+  "alto_cm": 42.0,
+  "ancho_cm": 4.0,
+  "lomo": true,
+  "proporcion": 0.0952,
+  "px_pantalla": 71
+ },
+ "BOOK_NORTH_10": {
+  "alto_cm": 30.0,
+  "ancho_cm": 3.0,
+  "lomo": true,
+  "proporcion": 0.1,
+  "px_pantalla": 55
+ },
+ "BOOK_NORTH_11": {
+  "alto_cm": 36.0,
+  "ancho_cm": 5.8,
+  "lomo": true,
+  "proporcion": 0.1611,
+  "px_pantalla": 65
+ },
+ "BOOK_NORTH_12": {
+  "alto_cm": 40.0,
+  "ancho_cm": 3.6,
+  "lomo": true,
+  "proporcion": 0.09,
+  "px_pantalla": 69
+ },
+ "BOOK_NORTH_13": {
+  "alto_cm": 32.0,
+  "ancho_cm": 4.6,
+  "lomo": true,
+  "proporcion": 0.1438,
+  "px_pantalla": 60
+ },
+ "BOOK_NORTH_14": {
+  "alto_cm": 38.0,
+  "ancho_cm": 3.4,
+  "lomo": true,
+  "proporcion": 0.0895,
+  "px_pantalla": 67
+ },
+ "BOOK_NORTH_15": {
+  "alto_cm": 42.0,
+  "ancho_cm": 4.0,
+  "lomo": true,
+  "proporcion": 0.0952,
+  "px_pantalla": 75
+ },
+ "BOOK_NORTH_16": {
+  "alto_cm": 30.0,
+  "ancho_cm": 3.0,
+  "lomo": true,
+  "proporcion": 0.1,
+  "px_pantalla": 58
+ },
+ "BOOK_NORTH_17": {
+  "alto_cm": 36.0,
+  "ancho_cm": 5.8,
+  "lomo": true,
+  "proporcion": 0.1611,
+  "px_pantalla": 69
+ },
+ "BOOK_NORTH_18": {
+  "alto_cm": 40.0,
+  "ancho_cm": 3.6,
+  "lomo": true,
+  "proporcion": 0.09,
+  "px_pantalla": 73
+ },
+ "BOOK_NORTH_19": {
+  "alto_cm": 32.0,
+  "ancho_cm": 4.6,
+  "lomo": true,
+  "proporcion": 0.1438,
+  "px_pantalla": 63
+ },
+ "BOOK_NORTH_20": {
+  "alto_cm": 38.0,
+  "ancho_cm": 3.4,
+  "lomo": true,
+  "proporcion": 0.0895,
+  "px_pantalla": 71
+ },
+ "BOOK_NORTH_21": {
+  "alto_cm": 34.0,
+  "ancho_cm": 5.2,
+  "lomo": true,
+  "proporcion": 0.1529,
+  "px_pantalla": 67
+ },
+ "BOOK_TABLE_01": {
+  "alto_cm": 27.0,
+  "ancho_cm": 36.0,
+  "lomo": false,
+  "proporcion": 1.3333,
+  "px_pantalla": 58
+ },
+ "BOOK_TABLE_02": {
+  "alto_cm": 24.0,
+  "ancho_cm": 32.0,
+  "lomo": false,
+  "proporcion": 1.3333,
+  "px_pantalla": 50
+ },
+ "CLOCK_CASE": {
+  "alto_cm": 38.0,
+  "ancho_cm": 38.0,
+  "lomo": false,
+  "proporcion": 1.0,
+  "px_pantalla": 97
+ },
+ "CLOCK_FACE": {
+  "alto_cm": 32.7,
+  "ancho_cm": 32.7,
+  "lomo": false,
+  "proporcion": 1.0,
+  "px_pantalla": 82
+ },
+ "CLOCK_HAND_HOUR": {
+  "alto_cm": 9.1,
+  "ancho_cm": 1.8,
+  "lomo": false,
+  "proporcion": 0.1974,
+  "px_pantalla": 14
+ },
+ "CLOCK_HAND_MINUTE": {
+  "alto_cm": 13.7,
+  "ancho_cm": 1.2,
+  "lomo": false,
+  "proporcion": 0.0877,
+  "px_pantalla": 28
+ },
+ "CLOCK_MARK_01": {
+  "alto_cm": 3.0,
+  "ancho_cm": 1.4,
+  "lomo": false,
+  "proporcion": 0.4667,
+  "px_pantalla": 5
+ },
+ "CLOCK_MARK_02": {
+  "alto_cm": 1.8,
+  "ancho_cm": 1.4,
+  "lomo": false,
+  "proporcion": 0.7778,
+  "px_pantalla": 4
+ },
+ "CLOCK_MARK_03": {
+  "alto_cm": 1.8,
+  "ancho_cm": 1.4,
+  "lomo": false,
+  "proporcion": 0.7778,
+  "px_pantalla": 4
+ },
+ "CLOCK_MARK_04": {
+  "alto_cm": 3.0,
+  "ancho_cm": 1.4,
+  "lomo": false,
+  "proporcion": 0.4667,
+  "px_pantalla": 7
+ },
+ "CLOCK_MARK_05": {
+  "alto_cm": 1.8,
+  "ancho_cm": 1.4,
+  "lomo": false,
+  "proporcion": 0.7778,
+  "px_pantalla": 4
+ },
+ "CLOCK_MARK_06": {
+  "alto_cm": 1.8,
+  "ancho_cm": 1.4,
+  "lomo": false,
+  "proporcion": 0.7778,
+  "px_pantalla": 3
+ },
+ "CLOCK_MARK_07": {
+  "alto_cm": 3.0,
+  "ancho_cm": 1.4,
+  "lomo": false,
+  "proporcion": 0.4667,
+  "px_pantalla": 5
+ },
+ "CLOCK_MARK_08": {
+  "alto_cm": 1.8,
+  "ancho_cm": 1.4,
+  "lomo": false,
+  "proporcion": 0.7778,
+  "px_pantalla": 4
+ },
+ "CLOCK_MARK_09": {
+  "alto_cm": 1.8,
+  "ancho_cm": 1.4,
+  "lomo": false,
+  "proporcion": 0.7778,
+  "px_pantalla": 4
+ },
+ "CLOCK_MARK_10": {
+  "alto_cm": 3.0,
+  "ancho_cm": 1.4,
+  "lomo": false,
+  "proporcion": 0.4667,
+  "px_pantalla": 6
+ },
+ "CLOCK_MARK_11": {
+  "alto_cm": 1.8,
+  "ancho_cm": 1.4,
+  "lomo": false,
+  "proporcion": 0.7778,
+  "px_pantalla": 4
+ },
+ "CLOCK_MARK_12": {
+  "alto_cm": 1.8,
+  "ancho_cm": 1.4,
+  "lomo": false,
+  "proporcion": 0.7778,
+  "px_pantalla": 3
+ },
+ "FRAME_NW_01": {
+  "alto_cm": 24.0,
+  "ancho_cm": 18.0,
+  "lomo": false,
+  "proporcion": 0.75,
+  "px_pantalla": 22
+ },
+ "FRAME_NW_02": {
+  "alto_cm": 24.0,
+  "ancho_cm": 18.0,
+  "lomo": false,
+  "proporcion": 0.75,
+  "px_pantalla": 22
+ },
+ "FRAME_STAIR_01": {
+  "alto_cm": 36.0,
+  "ancho_cm": 26.4,
+  "lomo": false,
+  "proporcion": 0.7333,
+  "px_pantalla": 38
+ },
+ "FRAME_STAIR_02": {
+  "alto_cm": 36.0,
+  "ancho_cm": 26.4,
+  "lomo": false,
+  "proporcion": 0.7333,
+  "px_pantalla": 40
+ },
+ "FRAME_STAIR_03": {
+  "alto_cm": 36.0,
+  "ancho_cm": 26.4,
+  "lomo": false,
+  "proporcion": 0.7333,
+  "px_pantalla": 40
+ },
+ "FRAME_STAIR_04": {
+  "alto_cm": 36.0,
+  "ancho_cm": 26.4,
+  "lomo": false,
+  "proporcion": 0.7333,
+  "px_pantalla": 43
+ },
+ "FRAME_STAIR_05": {
+  "alto_cm": 36.0,
+  "ancho_cm": 26.4,
+  "lomo": false,
+  "proporcion": 0.7333,
+  "px_pantalla": 43
+ },
+ "FRAME_STAIR_06": {
+  "alto_cm": 36.0,
+  "ancho_cm": 26.4,
+  "lomo": false,
+  "proporcion": 0.7333,
+  "px_pantalla": 46
+ },
+ "FRAME_STAIR_07": {
+  "alto_cm": 36.0,
+  "ancho_cm": 26.4,
+  "lomo": false,
+  "proporcion": 0.7333,
+  "px_pantalla": 45
+ },
+ "MAGAZINE_TABLE_01": {
+  "alto_cm": 25.0,
+  "ancho_cm": 34.0,
+  "lomo": false,
+  "proporcion": 1.36,
+  "px_pantalla": 61
+ },
+ "MONITOR_MAIN_PANEL": {
+  "alto_cm": 54.6,
+  "ancho_cm": 86.1,
+  "lomo": false,
+  "proporcion": 1.5784,
+  "px_pantalla": 141
+ },
+ "MONITOR_SIDE_PANEL": {
+  "alto_cm": 37.2,
+  "ancho_cm": 60.0,
+  "lomo": false,
+  "proporcion": 1.6129,
+  "px_pantalla": 87
+ },
+ "NOTEBOOK_EAST": {
+  "alto_cm": 20.6,
+  "ancho_cm": 28.8,
+  "lomo": false,
+  "proporcion": 1.3981,
+  "px_pantalla": 118
+ },
+ "NOTEBOOK_EAST_BAND": {
+  "alto_cm": 3.8,
+  "ancho_cm": 28.0,
+  "lomo": false,
+  "proporcion": 7.3684,
+  "px_pantalla": 101
+ },
+ "NOTEBOOK_EAST_COVER_BOTTOM": {
+  "alto_cm": 22.0,
+  "ancho_cm": 30.0,
+  "lomo": false,
+  "proporcion": 1.3636,
+  "px_pantalla": 122
+ },
+ "NOTEBOOK_EAST_COVER_TOP": {
+  "alto_cm": 22.0,
+  "ancho_cm": 30.0,
+  "lomo": false,
+  "proporcion": 1.3636,
+  "px_pantalla": 123
+ },
+ "PAPER_STACK_EAST_01": {
+  "alto_cm": 28.0,
+  "ancho_cm": 38.0,
+  "lomo": false,
+  "proporcion": 1.3571,
+  "px_pantalla": 276
+ },
+ "PAPER_STACK_EAST_02": {
+  "alto_cm": 26.0,
+  "ancho_cm": 36.0,
+  "lomo": false,
+  "proporcion": 1.3846,
+  "px_pantalla": 247
+ },
+ "PAPER_STACK_EAST_03": {
+  "alto_cm": 24.0,
+  "ancho_cm": 34.0,
+  "lomo": false,
+  "proporcion": 1.4167,
+  "px_pantalla": 244
+ },
+ "PHOTO_NORTH_01": {
+  "alto_cm": 25.9,
+  "ancho_cm": 19.0,
+  "lomo": false,
+  "proporcion": 0.7336,
+  "px_pantalla": 46
+ },
+ "PHOTO_NORTH_02": {
+  "alto_cm": 25.9,
+  "ancho_cm": 19.0,
+  "lomo": false,
+  "proporcion": 0.7336,
+  "px_pantalla": 46
+ },
+ "PHOTO_NORTH_03": {
+  "alto_cm": 25.9,
+  "ancho_cm": 19.0,
+  "lomo": false,
+  "proporcion": 0.7336,
+  "px_pantalla": 47
+ },
+ "PHOTO_NORTH_04": {
+  "alto_cm": 25.9,
+  "ancho_cm": 19.0,
+  "lomo": false,
+  "proporcion": 0.7336,
+  "px_pantalla": 45
+ },
+ "POSTER_WEST_01": {
+  "alto_cm": 114.0,
+  "ancho_cm": 66.0,
+  "lomo": false,
+  "proporcion": 0.5789,
+  "px_pantalla": 250
+ },
+ "POSTER_WEST_02": {
+  "alto_cm": 72.0,
+  "ancho_cm": 102.0,
+  "lomo": false,
+  "proporcion": 1.4167,
+  "px_pantalla": 229
+ },
+ "POSTER_WEST_03": {
+  "alto_cm": 36.0,
+  "ancho_cm": 43.2,
+  "lomo": false,
+  "proporcion": 1.2,
+  "px_pantalla": 113
+ },
+ "POSTER_WEST_04": {
+  "alto_cm": 33.6,
+  "ancho_cm": 38.4,
+  "lomo": false,
+  "proporcion": 1.1429,
+  "px_pantalla": 89
+ },
+ "POSTER_WEST_05": {
+  "alto_cm": 72.0,
+  "ancho_cm": 54.0,
+  "lomo": false,
+  "proporcion": 0.75,
+  "px_pantalla": 96
+ },
+ "RUG_CENTER_01": {
+  "alto_cm": 225.9,
+  "ancho_cm": 347.0,
+  "lomo": false,
+  "proporcion": 1.5366,
+  "px_pantalla": 538
+ },
+ "SCREEN_SURFACE": {
+  "alto_cm": 120.0,
+  "ancho_cm": 216.0,
+  "lomo": false,
+  "proporcion": 1.8,
+  "px_pantalla": 281
+ },
+ "SHEET_EAST_01": {
+  "alto_cm": 30.0,
+  "ancho_cm": 42.0,
+  "lomo": false,
+  "proporcion": 1.4,
+  "px_pantalla": 128
+ },
+ "SHEET_EAST_02": {
+  "alto_cm": 26.0,
+  "ancho_cm": 36.0,
+  "lomo": false,
+  "proporcion": 1.3846,
+  "px_pantalla": 153
+ },
+ "SHEET_EAST_03": {
+  "alto_cm": 34.0,
+  "ancho_cm": 46.0,
+  "lomo": false,
+  "proporcion": 1.3529,
+  "px_pantalla": 185
+ },
+ "SHEET_EAST_04": {
+  "alto_cm": 22.0,
+  "ancho_cm": 30.0,
+  "lomo": false,
+  "proporcion": 1.3636,
+  "px_pantalla": 151
+ },
+ "SHEET_EAST_05": {
+  "alto_cm": 30.0,
+  "ancho_cm": 40.0,
+  "lomo": false,
+  "proporcion": 1.3333,
+  "px_pantalla": 212
+ },
+ "SHEET_EAST_06": {
+  "alto_cm": 19.0,
+  "ancho_cm": 26.0,
+  "lomo": false,
+  "proporcion": 1.3684,
+  "px_pantalla": 154
+ },
+ "SHEET_EAST_07": {
+  "alto_cm": 26.0,
+  "ancho_cm": 36.0,
+  "lomo": false,
+  "proporcion": 1.3846,
+  "px_pantalla": 239
+ },
+ "SHELF_BOOKS_STACK": {
+  "alto_cm": 9.0,
+  "ancho_cm": 9.0,
+  "lomo": true,
+  "proporcion": 1.0,
+  "px_pantalla": 64
+ },
+ "SHELF_BOOK_01": {
+  "alto_cm": 22.0,
+  "ancho_cm": 5.0,
+  "lomo": true,
+  "proporcion": 0.2291,
+  "px_pantalla": 36
+ },
+ "SHELF_BOOK_02": {
+  "alto_cm": 25.0,
+  "ancho_cm": 5.0,
+  "lomo": true,
+  "proporcion": 0.2016,
+  "px_pantalla": 40
+ },
+ "SHELF_BOOK_03": {
+  "alto_cm": 28.0,
+  "ancho_cm": 5.0,
+  "lomo": true,
+  "proporcion": 0.18,
+  "px_pantalla": 44
+ },
+ "SHELF_BOOK_04": {
+  "alto_cm": 22.0,
+  "ancho_cm": 5.0,
+  "lomo": true,
+  "proporcion": 0.2291,
+  "px_pantalla": 35
+ },
+ "SHELF_BOOK_05": {
+  "alto_cm": 25.0,
+  "ancho_cm": 5.0,
+  "lomo": true,
+  "proporcion": 0.2016,
+  "px_pantalla": 39
+ },
+ "SHELF_BOOK_06": {
+  "alto_cm": 28.0,
+  "ancho_cm": 5.0,
+  "lomo": true,
+  "proporcion": 0.18,
+  "px_pantalla": 43
+ },
+ "VINYL_WALL_01": {
+  "alto_cm": 42.0,
+  "ancho_cm": 42.0,
+  "lomo": false,
+  "proporcion": 1.0,
+  "px_pantalla": 110
+ },
+ "VINYL_WALL_02": {
+  "alto_cm": 42.0,
+  "ancho_cm": 42.0,
+  "lomo": false,
+  "proporcion": 1.0,
+  "px_pantalla": 132
+ },
+ "VINYL_WALL_03": {
+  "alto_cm": 42.0,
+  "ancho_cm": 42.0,
+  "lomo": false,
+  "proporcion": 1.0,
+  "px_pantalla": 160
+ },
+ "VINYL_WALL_04": {
+  "alto_cm": 42.0,
+  "ancho_cm": 42.0,
+  "lomo": false,
+  "proporcion": 1.0,
+  "px_pantalla": 101
+ },
+ "VINYL_WALL_05": {
+  "alto_cm": 42.0,
+  "ancho_cm": 42.0,
+  "lomo": false,
+  "proporcion": 1.0,
+  "px_pantalla": 121
+ },
+ "VINYL_WALL_06": {
+  "alto_cm": 42.0,
+  "ancho_cm": 42.0,
+  "lomo": false,
+  "proporcion": 1.0,
+  "px_pantalla": 145
+ }
+}

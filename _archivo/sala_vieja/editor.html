@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Editor — calzar la sala contra la referencia</title>
+<style>
+  html,body{margin:0;height:100%;background:#111;overflow:hidden;
+    font-family:ui-monospace,"SF Mono",Menlo,monospace;color:#eee}
+  canvas{display:block;position:absolute;inset:0}
+  #ref{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;
+    pointer-events:none;opacity:.5;z-index:2}
+  #panel{position:absolute;top:0;right:0;width:310px;background:#0c0c0cee;
+    padding:12px 14px;z-index:5;font-size:11px;line-height:1.65;
+    max-height:100%;overflow:auto}
+  #panel h3{margin:10px 0 4px;font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:#7d7d7d;font-weight:400}
+  #panel h3:first-child{margin-top:0}
+  .row{display:flex;align-items:center;gap:8px;margin:3px 0}
+  .row label{width:26px;color:#8b8b8b}
+  input[type=range]{flex:1}
+  #out{white-space:pre-wrap;background:#000;padding:8px;font-size:10.5px;
+    color:#8fd4a0;max-height:190px;overflow:auto;user-select:all}
+  button{background:#1c1c1c;color:#ddd;border:1px solid #3a3a3a;padding:5px 9px;
+    font:inherit;font-size:10px;cursor:pointer;margin:2px 2px 2px 0}
+  button:hover{background:#2a2a2a}
+  #sel{color:#ffd479}
+  kbd{background:#242424;padding:1px 4px;border-radius:2px;color:#bbb}
+</style></head><body>
+<img id="ref" src="referencia.png" alt="referencia">
+<div id="panel">
+  <h3>Referencia</h3>
+  <div class="row"><label>op</label>
+    <input type="range" id="op" min="0" max="100" value="50"><span id="opv">50</span></div>
+  <button id="tgl">ocultar / mostrar (R)</button>
+
+  <h3>Cámara</h3>
+  <div class="row"><label>fov</label>
+    <input type="range" id="fov" min="25" max="95" step="1" value="62"><span id="fovv">62</span></div>
+  <div id="camout" style="color:#7fd1ff"></div>
+  <div style="color:#777">arrastrar = girar · rueda = acercar<br>
+    shift+arrastrar = desplazar</div>
+  <button id="copycam">copiar cámara</button>
+
+  <h3>Objeto <span id="sel">(ninguno)</span></h3>
+  <div style="color:#777">clic para seleccionar<br>
+    <kbd>←→</kbd> x · <kbd>↑↓</kbd> z · <kbd>q</kbd><kbd>e</kbd> y<br>
+    <kbd>a</kbd><kbd>d</kbd> ancho · <kbd>w</kbd><kbd>s</kbd> alto ·
+    <kbd>z</kbd><kbd>c</kbd> fondo<br>
+    <kbd>,</kbd><kbd>.</kbd> girar · <kbd>shift</kbd> = paso fino</div>
+  <div id="objout" style="color:#ffd479"></div>
+
+  <h3>Salida</h3>
+  <button id="dump">volcar cambios</button>
+  <button id="reset">deshacer selección</button>
+  <div id="out">—</div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "./lib/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { buildRoom, buildLights } from "./room.js";
+
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(1);
+document.body.appendChild(renderer.domElement);
+renderer.domElement.style.zIndex = 1;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8a8a86);
+const camera = new THREE.PerspectiveCamera(62, 1, .05, 200);
+
+const { targets } = buildRoom(scene);
+buildLights(scene);
+
+// ── cámara orbital simple
+const focus = new THREE.Vector3(.4, .9, -2.4);
+let dist = 8.2, yaw = 0, pitch = -.34;
+function placeCam(){
+  camera.position.set(
+    focus.x + dist*Math.cos(pitch)*Math.sin(yaw),
+    focus.y - dist*Math.sin(pitch),
+    focus.z + dist*Math.cos(pitch)*Math.cos(yaw));
+  camera.lookAt(focus);
+  const f = n => n.toFixed(2);
+  document.getElementById("camout").textContent =
+    `cam=${f(camera.position.x)},${f(camera.position.y)},${f(camera.position.z)}\n` +
+    `tgt=${f(focus.x)},${f(focus.y)},${f(focus.z)}\nfov=${camera.fov}`;
+}
+
+let drag = null;
+renderer.domElement.addEventListener("pointerdown", e => {
+  drag = { x:e.clientX, y:e.clientY, shift:e.shiftKey, moved:false }; });
+addEventListener("pointermove", e => {
+  if (!drag) return;
+  const dx = e.clientX-drag.x, dy = e.clientY-drag.y;
+  if (Math.abs(dx)+Math.abs(dy) > 3) drag.moved = true;
+  if (drag.shift){
+    const s = dist*.0016;
+    focus.x -= (dx*Math.cos(yaw) )*s; focus.z += (dx*Math.sin(yaw))*s;
+    focus.y += dy*s;
+  } else { yaw -= dx*.005; pitch = Math.max(-1.5, Math.min(1.5, pitch + dy*.005)); }
+  drag.x = e.clientX; drag.y = e.clientY; placeCam(); });
+addEventListener("pointerup", e => {
+  if (drag && !drag.moved) pick(e);
+  drag = null; });
+addEventListener("wheel", e => {
+  dist = Math.max(.6, Math.min(40, dist * (1 + Math.sign(e.deltaY)*.08)));
+  placeCam(); }, { passive:true });
+
+// ── selección y edición
+const ray = new THREE.Raycaster(), pt = new THREE.Vector2();
+let sel = null;
+const changed = new Map();
+const pickable = [];
+scene.traverse(o => { if (o.isMesh) pickable.push(o); });
+
+function pick(e){
+  pt.x = (e.clientX/innerWidth)*2-1; pt.y = -(e.clientY/innerHeight)*2+1;
+  ray.setFromCamera(pt, camera);
+  const h = ray.intersectObjects(pickable, false)[0];
+  if (sel) sel.material.emissive && sel.material.emissive.setHex(sel.userData._em ?? 0);
+  sel = h ? h.object : null;
+  if (sel){
+    sel.userData._em = sel.material.emissive ? sel.material.emissive.getHex() : 0;
+    if (sel.material.emissive) sel.material.emissive.setHex(0x553300);
+    sel.userData._id = sel.userData._id || ("m" + pickable.indexOf(sel));
+  }
+  showSel();
+}
+function showSel(){
+  document.getElementById("sel").textContent = sel ? sel.userData._id : "(ninguno)";
+  const o = document.getElementById("objout");
+  if (!sel){ o.textContent = ""; return; }
+  const p = sel.position, s = sel.scale;
+  const f = n => n.toFixed(2);
+  o.textContent = `pos ${f(p.x)}, ${f(p.y)}, ${f(p.z)}\n` +
+    `esc ${f(s.x)}, ${f(s.y)}, ${f(s.z)}\nrotY ${sel.rotation.y.toFixed(3)}`;
+}
+addEventListener("keydown", e => {
+  if (e.key === "r" || e.key === "R"){ const r = document.getElementById("ref");
+    r.style.display = r.style.display === "none" ? "block" : "none"; return; }
+  if (!sel) return;
+  const st = e.shiftKey ? .02 : .1, ss = e.shiftKey ? .01 : .05;
+  const k = e.key;
+  if (k === "ArrowLeft")  sel.position.x -= st;
+  else if (k === "ArrowRight") sel.position.x += st;
+  else if (k === "ArrowUp")    sel.position.z -= st;
+  else if (k === "ArrowDown")  sel.position.z += st;
+  else if (k === "q") sel.position.y -= st;
+  else if (k === "e") sel.position.y += st;
+  else if (k === "a") sel.scale.x = Math.max(.02, sel.scale.x - ss);
+  else if (k === "d") sel.scale.x += ss;
+  else if (k === "s") sel.scale.y = Math.max(.02, sel.scale.y - ss);
+  else if (k === "w") sel.scale.y += ss;
+  else if (k === "z") sel.scale.z = Math.max(.02, sel.scale.z - ss);
+  else if (k === "c") sel.scale.z += ss;
+  else if (k === ",") sel.rotation.y -= e.shiftKey ? .01 : .05;
+  else if (k === ".") sel.rotation.y += e.shiftKey ? .01 : .05;
+  else return;
+  e.preventDefault();
+  changed.set(sel.userData._id, sel);
+  showSel();
+});
+
+document.getElementById("dump").onclick = () => {
+  const f = n => +n.toFixed(3);
+  const rows = [...changed.values()].map(m => ({
+    id: m.userData._id,
+    pos: [f(m.position.x), f(m.position.y), f(m.position.z)],
+    esc: [f(m.scale.x), f(m.scale.y), f(m.scale.z)],
+    rotY: f(m.rotation.y)
+  }));
+  document.getElementById("out").textContent =
+    rows.length ? JSON.stringify(rows, null, 1) : "sin cambios";
+};
+document.getElementById("reset").onclick = () => {
+  if (sel && sel.material.emissive) sel.material.emissive.setHex(sel.userData._em ?? 0);
+  sel = null; showSel(); };
+document.getElementById("copycam").onclick = () => {
+  document.getElementById("out").textContent =
+    document.getElementById("camout").textContent; };
+
+const op = document.getElementById("op");
+op.oninput = () => { document.getElementById("ref").style.opacity = op.value/100;
+  document.getElementById("opv").textContent = op.value; };
+const fov = document.getElementById("fov");
+fov.oninput = () => { camera.fov = +fov.value; camera.updateProjectionMatrix();
+  document.getElementById("fovv").textContent = fov.value; placeCam(); };
+document.getElementById("tgl").onclick = () => {
+  const r = document.getElementById("ref");
+  r.style.display = r.style.display === "none" ? "block" : "none"; };
+
+function resize(){
+  const de = document.documentElement;
+  const w = Math.max(1, innerWidth || de.clientWidth || 1672);
+  const h = Math.max(1, innerHeight || de.clientHeight || 941);
+  renderer.setSize(w,h); camera.aspect = w/h; camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize);
+new ResizeObserver(resize).observe(document.documentElement);
+resize(); placeCam();
+
+const qs = new URLSearchParams(location.search);
+if (qs.get("yaw")) yaw = +qs.get("yaw");
+if (qs.get("pitch")) pitch = +qs.get("pitch");
+if (qs.get("dist")) dist = +qs.get("dist");
+if (qs.get("fov")){ camera.fov = +qs.get("fov"); camera.updateProjectionMatrix(); }
+if (qs.get("focus")){ const a = qs.get("focus").split(",").map(Number);
+  if (a.length===3) focus.set(a[0],a[1],a[2]); }
+placeCam();
+
+(function loop(){ requestAnimationFrame(loop); renderer.render(scene, camera); })();
+</script></body></html>

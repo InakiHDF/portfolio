@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Habitación — tratamientos visuales</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;
+    font-family:ui-monospace,"SF Mono",Menlo,monospace}
+  canvas{display:block}
+  #ui{position:fixed;left:0;right:0;bottom:0;display:flex;flex-wrap:wrap;
+    gap:1px;background:#000;z-index:10}
+  #ui button{flex:1;min-width:90px;background:#111;color:#8a8a8a;border:0;
+    padding:11px 6px;font:inherit;font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;cursor:pointer}
+  #ui button:hover{color:#fff}
+  #ui button.on{background:#fff;color:#000}
+  #tag{position:fixed;top:14px;left:16px;color:#fff;mix-blend-mode:difference;
+    font-size:11px;letter-spacing:.18em;text-transform:uppercase;z-index:10}
+  #hit{position:fixed;top:34px;left:16px;color:#fff;mix-blend-mode:difference;
+    font-size:11px;letter-spacing:.06em;z-index:10;opacity:.75}
+  body.bare #ui,body.bare #tag,body.bare #hit{display:none}
+</style></head><body>
+<div id="tag"></div><div id="hit">clic en un objeto</div>
+<div id="ui"></div>
+<script src="lib/three.min.js"></script>
+<script>
+const Q = new URLSearchParams(location.search);
+const STYLES = ["psx","1bit","ascii","plano","riso","puntos"];
+let style = Q.get("e") || "psx";
+if (Q.get("bare")) document.body.classList.add("bare");
+
+const renderer = new THREE.WebGLRenderer({ antialias:false });
+renderer.setPixelRatio(1);
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 100);
+camera.position.set(5.4, 3.5, 5.6);
+camera.lookAt(0, 1.5, -1.2);
+
+const mats = [];
+function M(color, opts){
+  const m = new THREE.MeshLambertMaterial(Object.assign({ color }, opts||{}));
+  mats.push(m); return m;
+}
+function add(geo, mat, x, y, z, rx, ry, rz){
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x, y, z);
+  m.rotation.set(rx||0, ry||0, rz||0);
+  scene.add(m); return m;
+}
+const box = (w,h,d) => new THREE.BoxGeometry(w,h,d);
+
+const hotspots = [];
+function hot(mesh, label){ mesh.userData.label = label; hotspots.push(mesh); return mesh; }
+
+const wall = M(0xc6bca8), floorM = M(0x97897c), wood = M(0xad8452),
+      dark = M(0x44444e), metal = M(0x9ea4aa), warm = M(0xd8c69f);
+
+add(box(11, .3, 11), floorM, 0, -.15, 0);
+add(box(11, 7, .3), wall, 0, 3.5, -5.5);
+add(box(.3, 7, 11), wall, -5.5, 3.5, 0);
+add(box(4.6, .05, 3.4), M(0x8c4a3f), -.4, .02, .4);
+
+const deskT = add(box(3.6,.16,1.7), wood, -2.2, 1.5, -4.2);
+[[-3.8,-4.9],[-.6,-4.9],[-3.8,-3.6],[-.6,-3.6]].forEach(p =>
+  add(box(.13,1.5,.13), dark, p[0], .75, p[1]));
+add(box(1.7,.12,1.0), dark, -2.2, 2.05, -4.3);
+add(box(.18,.5,.18), dark, -2.2, 1.85, -4.3);
+const screen = hot(add(box(1.85,1.15,.14), dark, -2.2, 2.72, -4.35), "desarrollos web");
+add(box(1.66,.98,.02), M(0x6f8fa8,{emissive:0x24333f}), -2.2, 2.72, -4.26);
+
+add(box(1.5,1.5,1.4), wood, 2.6, .75, -4.3);
+const tv = hot(add(box(1.5,1.3,1.3), M(0xb9b2a2), 2.6, 2.15, -4.25), "videos");
+add(box(1.12,.9,.02), M(0x59636b,{emissive:0x1d2429}), 2.6, 2.22, -3.58);
+add(box(.06,.5,.06), metal, 2.35, 2.95, -4.25, .3, 0, .25);
+add(box(.06,.62,.06), metal, 2.85, 3.0, -4.25, -.2, 0, -.3);
+
+const gBody = hot(add(box(.92,1.25,.26), M(0xa8452f), 4.55, .95, -1.4, 0,-.35,.16), "música");
+add(box(.17,2.3,.13), M(0x4a3524), 4.16, 2.55, -1.05, 0,-.35,.16);
+add(box(.3,.42,.11), dark, 4.02, 3.72, -.92, 0,-.35,.16);
+
+add(box(1.5,.14,1.1), wood, -4.3, .95, -1.6);
+[[-4.9,-2.05],[-3.7,-2.05],[-4.9,-1.15],[-3.7,-1.15]].forEach(p =>
+  add(box(.1,.95,.1), dark, p[0], .47, p[1]));
+const books = hot(add(box(1.0,.13,.72), M(0xd8cfae), -4.3, 1.09, -1.6, 0,.13,0), "escritos");
+add(box(.98,.12,.7), M(0xb85c3c), -4.3, 1.22, -1.62, 0,-.07,0);
+add(box(.94,.11,.68), M(0x51606e), -4.3, 1.34, -1.58, 0,.2,0);
+
+add(box(1.0,.13,1.0), dark, -1.5, .8, -2.5);
+[[-1.95,-2.95],[-1.05,-2.95],[-1.95,-2.05],[-1.05,-2.05]].forEach(p =>
+  add(box(.09,.8,.09), metal, p[0], .4, p[1]));
+add(box(1.0,1.1,.12), dark, -1.5, 1.4, -2.95);
+
+add(box(1.3,1.7,.04), M(0xcfa93f), -.2, 4.2, -5.32);
+add(box(1.1,1.5,.04), M(0x3f6f7a), 1.7, 4.4, -5.32, 0,0,.04);
+add(box(1.5,1.1,.04), M(0xa8452f), -5.32, 4.3, -1.4, 0,1.5708,0);
+
+add(box(.09,1.5,.09), dark, .3, 5.9, -1.6);
+add(new THREE.ConeGeometry(.62,.6,10), M(0xe8e2d2), .3, 4.9, -1.6);
+
+const skin = M(0xd0a077), shirt = M(0x36506b), pant = M(0x2e3138);
+const me = new THREE.Group();
+function part(geo, mat, x, y, z){
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x, y, z); me.add(m); return m;
+}
+part(box(.62,.85,.34), shirt, 0, 1.52, 0);
+part(new THREE.SphereGeometry(.24,12,10), skin, 0, 2.16, 0);
+part(box(.2,.8,.2), pant, -.16, .55, 0);
+part(box(.2,.8,.2), pant, .16, .55, 0);
+part(box(.16,.72,.16), shirt, -.4, 1.5, .06);
+part(box(.16,.72,.16), shirt, .4, 1.5, .06);
+me.position.set(1.35, 0, .75); me.rotation.y = -.75;
+scene.add(me);
+hot(me.children[0], "sobre mí");
+
+scene.add(new THREE.AmbientLight(0xffffff, 1.55));
+const dl = new THREE.DirectionalLight(0xffffff, 1.35); dl.position.set(5,7,5); scene.add(dl);
+const dl2 = new THREE.DirectionalLight(0xbfd4ff, .5); dl2.position.set(-4,3,2); scene.add(dl2);
+const pl = new THREE.PointLight(0xffd8a0, 40, 11); pl.position.set(.3,4.3,-1.6); scene.add(pl);
+
+const SNAP = `
+  vec4 mvPosition = vec4( transformed, 1.0 );
+  mvPosition = modelViewMatrix * mvPosition;
+  vec4 sp = projectionMatrix * mvPosition;
+  float gw = 96.0;
+  sp.xyz /= sp.w;
+  sp.xy = floor(sp.xy * gw) / gw;
+  sp.xyz *= sp.w;
+  gl_Position = sp;`;
+const NOSNAP = function(){};
+const DOSNAP = function(s){
+  s.vertexShader = s.vertexShader.replace("#include <project_vertex>", SNAP);
+};
+function snap(on){
+  mats.forEach(m => { m.onBeforeCompile = on ? DOSNAP : NOSNAP; m.needsUpdate = true; });
+}
+
+const BAYER = `
+float bayer(vec2 p){
+  int x = int(mod(p.x,4.0)); int y = int(mod(p.y,4.0));
+  int i = x + y*4;
+  float m[16];
+  m[0]=0.;m[1]=8.;m[2]=2.;m[3]=10.;m[4]=12.;m[5]=4.;m[6]=14.;m[7]=6.;
+  m[8]=3.;m[9]=11.;m[10]=1.;m[11]=9.;m[12]=15.;m[13]=7.;m[14]=13.;m[15]=5.;
+  float v = 0.0;
+  for(int k=0;k<16;k++){ if(k==i) v = m[k]; }
+  return (v+0.5)/16.0;
+}`;
+const VS = "varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }";
+const FRAG = {
+  psx: BAYER + `
+    uniform sampler2D t; varying vec2 vUv;
+    void main(){ vec3 c = texture2D(t,vUv).rgb;
+      float d = bayer(gl_FragCoord.xy);
+      c = floor(c*22.0 + d)/22.0;
+      gl_FragColor = vec4(c,1.0); }`,
+  "1bit": BAYER + `
+    uniform sampler2D t; varying vec2 vUv;
+    void main(){ vec3 c = texture2D(t,vUv).rgb;
+      float l = dot(c, vec3(0.299,0.587,0.114));
+      l = clamp((l - 0.10) * 1.75, 0.0, 1.0);
+      l = pow(l, 0.78);
+      float v = step(bayer(gl_FragCoord.xy), l);
+      vec3 ink = vec3(0.055,0.050,0.062);
+      vec3 pap = vec3(0.925,0.918,0.878);
+      gl_FragColor = vec4(mix(ink,pap,v),1.0); }`,
+  riso: `
+    uniform sampler2D t; uniform vec2 res; varying vec2 vUv;
+    float scr(vec2 uv, float a, float v){
+      float s=sin(a), c=cos(a);
+      vec2 p = vec2(uv.x*c-uv.y*s, uv.x*s+uv.y*c) * (res.x/9.0);
+      vec2 f = fract(p)-0.5;
+      return 1.0 - step(sqrt(clamp(v,0.0,1.0))*0.70, length(f));
+    }
+    void main(){ vec3 c = texture2D(t,vUv).rgb;
+      c = pow(clamp(c*1.35,0.0,1.0), vec3(0.72));
+      vec3 cmy = clamp((1.0 - c) * 0.92, 0.0, 1.0);
+      float C = scr(vUv, 0.262, cmy.r);
+      float M = scr(vUv, 1.309, cmy.g);
+      float Y = scr(vUv, 0.0,   cmy.b);
+      vec3 o = vec3(0.96,0.95,0.91);
+      o -= C * vec3(0.72,0.18,0.05);
+      o -= M * vec3(0.06,0.62,0.30);
+      o -= Y * vec3(0.02,0.05,0.66);
+      gl_FragColor = vec4(clamp(o,0.0,1.0),1.0); }`
+};
+
+const RES = { psx:[352,264], "1bit":[440,275], ascii:[168,105], riso:[900,560] };
+let rt = null, quad = null, qscene = null, qcam = null, ascii = null;
+
+function setup(){
+  scene.background = new THREE.Color(style==="plano" ? 0x0d1a2b : 0x1b1a1f);
+  scene.fog = null;
+  snap(style === "psx");
+
+  mats.forEach(m => { m.wireframe = (style === "plano"); });
+  if (style === "plano") mats.forEach(m => m.color.set(0x8fd4ff));
+  else resetColors();
+
+  me.visible = true;
+  scene.traverse(o => { if (o.isPoints) o.visible = (style === "puntos"); });
+  if (style === "puntos") buildPoints(); else clearPoints();
+
+  if (qscene) { qscene = null; }
+  if (FRAG[style]) {
+    const [w,h] = RES[style];
+    rt = new THREE.WebGLRenderTarget(w, h, {
+      minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
+    qscene = new THREE.Scene();
+    qcam = new THREE.Camera();
+    quad = new THREE.Mesh(new THREE.PlaneGeometry(2,2), new THREE.ShaderMaterial({
+      vertexShader: VS, fragmentShader: FRAG[style], depthTest:false, depthWrite:false,
+      uniforms: { t:{value:rt.texture}, res:{value:new THREE.Vector2(w,h)} }
+    }));
+    quad.frustumCulled = false;
+    qscene.add(quad);
+  }
+  if (style === "ascii") {
+    const [w,h] = RES.ascii;
+    rt = new THREE.WebGLRenderTarget(w, h, {
+      minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
+    if (!ascii) { ascii = document.createElement("canvas");
+      ascii.style.cssText = "position:fixed;inset:0;width:100%;height:100%";
+      document.body.appendChild(ascii); }
+    ascii.style.display = "block";
+    renderer.domElement.style.display = "none";
+  } else {
+    if (ascii) ascii.style.display = "none";
+    renderer.domElement.style.display = "block";
+  }
+  document.getElementById("tag").textContent = style;
+  document.querySelectorAll("#ui button").forEach(b =>
+    b.classList.toggle("on", b.dataset.s === style));
+}
+const ORIG = mats.map(m => m.color.getHex());
+function resetColors(){ mats.forEach((m,i) => m.color.setHex(ORIG[i])); }
+
+let ptsGroup = null;
+const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();
+function sampleMesh(mesh, out, cols){
+  const g = mesh.geometry, pos = g.attributes.position, idx = g.index;
+  const nTri = idx ? idx.count/3 : pos.count/3;
+  const tri = [], areas = []; let total = 0;
+  for (let i=0; i<nTri; i++){
+    const i0 = idx?idx.getX(i*3):i*3, i1 = idx?idx.getX(i*3+1):i*3+1,
+          i2 = idx?idx.getX(i*3+2):i*3+2;
+    _a.fromBufferAttribute(pos,i0); _b.fromBufferAttribute(pos,i1);
+    _c.fromBufferAttribute(pos,i2);
+    const ar = _b.sub(_a).cross(_c.sub(_a)).length()*0.5;
+    areas.push(ar); total += ar; tri.push([i0,i1,i2]);
+  }
+  if (total <= 0) return;
+  mesh.updateMatrixWorld();
+  const col = mesh.material.color;
+  const n = Math.min(9000, Math.max(60, Math.round(total * 900)));
+  for (let k=0; k<n; k++){
+    let r = Math.random()*total, j = 0;
+    while (j < areas.length-1 && (r -= areas[j]) > 0) j++;
+    const t = tri[j];
+    _a.fromBufferAttribute(pos,t[0]); _b.fromBufferAttribute(pos,t[1]);
+    _c.fromBufferAttribute(pos,t[2]);
+    let u = Math.random(), v = Math.random();
+    if (u+v > 1){ u = 1-u; v = 1-v; }
+    const p = _a.clone()
+      .addScaledVector(_b.clone().sub(_a), u)
+      .addScaledVector(_c.clone().sub(_a), v)
+      .applyMatrix4(mesh.matrixWorld);
+    out.push(p.x, p.y, p.z);
+    const f = 0.72 + Math.random()*0.55;
+    cols.push(col.r*f, col.g*f, col.b*f);
+  }
+}
+function buildPoints(){
+  clearPoints();
+  const out = [], cols = [], hide = [];
+  scene.traverse(o => { if (o.isMesh && o.geometry) hide.push(o); });
+  hide.forEach(o => sampleMesh(o, out, cols));
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(out, 3));
+  g.setAttribute("color", new THREE.Float32BufferAttribute(cols, 3));
+  ptsGroup = new THREE.Points(g, new THREE.PointsMaterial({
+    size: .035, vertexColors: true, sizeAttenuation: true }));
+  scene.add(ptsGroup);
+  hide.forEach(o => { o.visible = false; });
+}
+function clearPoints(){
+  if (ptsGroup) { scene.remove(ptsGroup); ptsGroup = null; }
+  scene.traverse(o => { if (o.isMesh) o.visible = true; });
+}
+
+const CHARS = " .:-=+*#%@";
+function drawAscii(){
+  const [w,h] = RES.ascii;
+  const buf = new Uint8Array(w*h*4);
+  renderer.readRenderTargetPixels(rt, 0, 0, w, h, buf);
+  const cw = 7, ch = 11;
+  ascii.width = w*cw; ascii.height = h*ch;
+  const g = ascii.getContext("2d");
+  g.fillStyle = "#070a08"; g.fillRect(0,0,ascii.width,ascii.height);
+  g.font = ch + "px ui-monospace, Menlo, monospace";
+  g.textBaseline = "top";
+  for (let y=0; y<h; y++) for (let x=0; x<w; x++){
+    const i = ((h-1-y)*w + x)*4;
+    let l = (buf[i]*0.299 + buf[i+1]*0.587 + buf[i+2]*0.114)/255;
+    l = Math.pow(Math.min(1, l*1.25), 0.6);
+    const k = Math.min(CHARS.length-1, Math.floor(l*CHARS.length));
+    if (k === 0) continue;
+    const b = 1.9;
+    g.fillStyle = "rgb("+Math.min(255,buf[i]*b|0)+","
+      +Math.min(255,buf[i+1]*b|0)+","+Math.min(255,buf[i+2]*b|0)+")";
+    g.fillText(CHARS[k], x*cw, y*ch);
+  }
+}
+
+function resize(){
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w,h);
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize); resize();
+
+const ray = new THREE.Raycaster(), pt = new THREE.Vector2();
+addEventListener("pointerdown", e => {
+  pt.x = (e.clientX/innerWidth)*2-1; pt.y = -(e.clientY/innerHeight)*2+1;
+  ray.setFromCamera(pt, camera);
+  const h = ray.intersectObjects(hotspots, false)[0];
+  document.getElementById("hit").textContent =
+    h ? "→ " + h.object.userData.label : "clic en un objeto";
+});
+
+let t0 = 0;
+function loop(t){
+  requestAnimationFrame(loop);
+  const a = t*0.00012;
+  camera.position.x = Math.sin(a)*1.1 + 5.2;
+  camera.position.z = Math.cos(a)*0.8 + 5.4;
+  camera.lookAt(0, 1.5, -1.2);
+  if (style === "ascii"){
+    renderer.setRenderTarget(rt); renderer.render(scene, camera);
+    renderer.setRenderTarget(null); drawAscii();
+  } else if (qscene){
+    renderer.setRenderTarget(rt); renderer.render(scene, camera);
+    renderer.setRenderTarget(null); renderer.render(qscene, qcam);
+  } else {
+    renderer.render(scene, camera);
+  }
+}
+
+const ui = document.getElementById("ui");
+STYLES.forEach(s => {
+  const b = document.createElement("button");
+  b.textContent = s; b.dataset.s = s;
+  b.onclick = () => { style = s; setup(); };
+  ui.appendChild(b);
+});
+setup(); loop(0);
+</script></body></html>
