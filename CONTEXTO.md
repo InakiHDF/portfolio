@@ -103,6 +103,17 @@ _archivo/sala_vieja/       ← primer intento de modelar en la web. Descartado.
 `_archivo/sala_vieja/` ya está en el historial de git: se puede borrar del
 disco sin perderlo.
 
+### Cuidado con git
+
+Existe un **repositorio de git accidental en `/Users/gongorainaki`**, o sea la
+carpeta personal entera, sin ningún commit. Antes de que el proyecto tuviera
+el suyo, cualquier comando de git corrido acá arriba apuntaba a ése: un
+`git add -A` se pone a recorrer toda la carpeta de usuario y no termina más.
+
+El proyecto ahora tiene su propio repo en `Repos/Web/Portfolio`, que al estar
+anidado tiene prioridad. Verificar siempre con `git rev-parse --show-toplevel`
+antes de commitear.
+
 ---
 
 ## 4. El sistema de sectores y el candado — LEER
