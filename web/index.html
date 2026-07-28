@@ -2,52 +2,182 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>La habitación</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1d1c18">
+<title>Iñaki Góngora</title>
 <style>
-  html, body { margin:0; height:100%; background:#0a0908; overflow:hidden;
-    font-family: ui-monospace, "SF Mono", Menlo, monospace; color:#e8e2d6; }
-  canvas { display:block; }
+  :root {
+    --bar:#1d1c18;
+    --bar-2:#292721;
+    --paper:#e3dfd2;
+    --muted:#989386;
+    --line:#4f4b40;
+    --orange:#c9783a;
+    --blue:#738c9d;
+    --nav-h:58px;
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; width:100%; height:100%; overflow:hidden; background:#080807; color:var(--paper); }
+  body { font-family:Verdana,Arial,sans-serif; font-size:12px; }
+  button,a { color:inherit; font:inherit; }
+  button { border:0; outline:0; }
+  canvas { position:fixed; display:block; cursor:crosshair; }
 
-  #hud { position:fixed; inset:0; pointer-events:none; z-index:5; }
-  #titulo { position:absolute; left:22px; bottom:64px; font-size:13px;
-    letter-spacing:.22em; text-transform:uppercase; opacity:0;
-    transition:opacity .4s; text-shadow:0 2px 12px #000; }
-  #titulo.on { opacity:1; }
-  #volver { position:absolute; left:22px; bottom:26px; font-size:10px;
-    letter-spacing:.18em; text-transform:uppercase; pointer-events:auto;
-    background:rgba(0,0,0,.35); border:1px solid rgba(232,226,214,.5);
-    color:inherit; padding:9px 15px; cursor:pointer; opacity:0;
-    transition:opacity .3s; font-family:inherit; }
-  #volver.on { opacity:1; }
-  #pista { position:absolute; left:22px; top:20px; font-size:10px;
-    letter-spacing:.16em; text-transform:uppercase; opacity:.45; }
+  /* La barra: a la izquierda el nombre, que además es el modo habitación, y a
+     continuación las cuatro secciones. Antes había un recuadro con el nombre Y
+     un enlace "Habitación" al lado: dos controles para lo mismo. */
+  #nav {
+    position:fixed; z-index:50; inset:0 0 auto; height:var(--nav-h);
+    display:grid; grid-template-columns:auto 1fr; align-items:stretch;
+    background:var(--bar); border-bottom:4px solid #0b0b09;
+    box-shadow:inset 0 -1px #4b473d; text-transform:uppercase;
+  }
+  .brand { position:relative; display:flex; align-items:center; padding:0 26px 0 21px; border:0; border-right:1px solid #090907; background:none; cursor:pointer; text-decoration:none; white-space:nowrap; color:#8e897d; font:700 13px "Arial Narrow",Arial,sans-serif; letter-spacing:.14em; }
+  .brand:hover { color:#d7d2c5; background:#24231e; }
+  .brand.on { color:#f1ede2; background:var(--bar-2); }
+  .brand.on::after { content:""; position:absolute; left:21px; right:26px; bottom:7px; height:3px; background:var(--orange); }
+  .nav-links { display:flex; height:100%; }
+  .nav-link { position:relative; min-width:98px; padding:0 17px; border:0; border-right:1px solid #11100e; background:none; cursor:pointer; white-space:nowrap; text-transform:uppercase; color:#8e897d; font:700 9px Verdana,sans-serif; letter-spacing:.08em; }
+  .nav-link:hover { color:#d7d2c5; background:#24231e; }
+  .nav-link.on { color:#f1ede2; background:var(--bar-2); }
+  .nav-link.on::after { content:""; position:absolute; left:14px; right:14px; bottom:7px; height:3px; background:var(--orange); }
+  .nav-link sup { margin-left:5px; color:#6f8795; font:700 7px "Courier New",monospace; }
 
-  #carga { position:fixed; inset:0; display:flex; align-items:center;
-    justify-content:center; background:#0a0908; z-index:10; font-size:11px;
-    letter-spacing:.24em; text-transform:uppercase; transition:opacity .6s; }
+  #hud { position:fixed; inset:var(--nav-h) 0 0; z-index:20; pointer-events:none; }
+  #intro { position:absolute; left:26px; bottom:24px; padding-left:15px; border-left:5px solid var(--orange); transition:opacity .3s; text-transform:uppercase; }
+  #intro h1 { margin:0; font:700 clamp(42px,6.4vw,92px)/.82 "Arial Narrow",Arial,sans-serif; letter-spacing:-.07em; color:#ece8dc; }
+  #intro h1 span { display:block; margin-top:.14em; color:#8f9698; font:700 .2em/1.1 "Courier New",monospace; letter-spacing:.16em; }
+  /* Era tan chico que no se notaba: ahora es un botón de verdad. El `ESC` se
+     centra contra la altura del botón, no contra la línea de texto: si no,
+     queda una pizca más arriba que "VOLVER" porque mide 10 px contra 12. */
+  #volver { position:absolute; left:22px; top:20px; pointer-events:auto; padding:15px 24px 15px 62px; color:#eae5d8; background:#211f1a; border:1px solid #6b6455; border-left:6px solid var(--orange); font:700 12px/1 "Courier New",monospace; letter-spacing:.13em; text-transform:uppercase; cursor:pointer; opacity:0; transform:translateX(-15px); transition:opacity .35s,transform .35s,background .2s; }
+  #volver::before { content:"ESC"; position:absolute; left:20px; top:50%; transform:translateY(-50%); padding:3px 6px; color:#cdd7db; background:#3a3830; font-size:10px; line-height:1; }
+  #volver.on { opacity:1; transform:none; }
+  #volver:hover { background:#332f27; }
+  #cursor-label { position:absolute; left:0; top:0; opacity:0; transform:translate(15px,13px); padding:7px 10px; color:#1a1915; background:#ded9cb; border-left:4px solid var(--orange); font:700 9px "Courier New",monospace; letter-spacing:.06em; text-transform:uppercase; transition:opacity .08s; }
+  #cursor-label.on { opacity:1; }
+
+  /* El reproductor. `#video-stage` es sólo el telón: el que se mueve y crece
+     es `#video-shell`, que arranca justo encima del rectángulo que ocupa la
+     tela del proyector en pantalla. Las medidas las pone sala.js. */
+  #video-stage { position:fixed; z-index:90; inset:0; display:none; }
+  #video-stage.montado { display:block; }
+  #video-stage::before {
+    content:""; position:absolute; inset:0; background:#050504;
+    opacity:0; transition:opacity .8s ease;
+  }
+  #video-stage.on::before { opacity:1; }
+  /* Arranca invisible: se disuelve sobre la tela antes de moverse. Las
+     transiciones de caja y de opacidad las pone sala.js, nunca a la vez. */
+  #video-shell { position:fixed; overflow:hidden; background:#000; opacity:0; will-change:left,top,width,height,opacity; }
+  #video-shell:fullscreen { inset:0!important; width:100%!important; height:100%!important; }
+  #video-el { display:block; width:100%; height:100%; object-fit:contain; background:#000; cursor:pointer; }
+
+  #video-back {
+    position:absolute; z-index:3; left:22px; top:20px; padding:15px 22px; color:#eae5d8;
+    background:#191815; border:1px solid #6b6455; border-left:6px solid var(--orange); cursor:pointer;
+    font:700 12px "Courier New",monospace; text-transform:uppercase; letter-spacing:.13em;
+    opacity:0; pointer-events:none; transition:opacity .55s ease;
+  }
+  #video-stage.on #video-back { opacity:1; pointer-events:auto; }
+  #video-back:hover { background:#2a2721; }
+
+  /* Los controles sólo aparecen cuando el cuadro terminó de abrirse: durante
+     la transición no tienen dónde apoyarse sin saltar. Y se van solos: la clase
+     `quieto` la pone sala.js a los segundos sin actividad. */
+  #vc { position:absolute; z-index:2; left:0; right:0; bottom:0; padding:34px 16px 12px;
+        background:linear-gradient(to top,rgba(6,6,5,.92),rgba(6,6,5,0));
+        display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:14px;
+        opacity:0; pointer-events:none; transition:opacity .55s ease; }
+  #video-stage.pleno #vc { opacity:1; pointer-events:auto; }
+  #video-stage.pleno.quieto #vc { opacity:0; pointer-events:none; }
+  #video-stage.pleno.quieto #video-back { opacity:0; pointer-events:none; }
+  #video-stage.pleno.quieto #video-el { cursor:none; }
+  #vc button { background:#1d1c18; color:#ded9cb; border:1px solid #4b473d; cursor:pointer;
+               font:700 10px "Courier New",monospace; letter-spacing:.08em; padding:9px 12px; }
+  #vc button:hover { background:#2f2c25; color:#fff; }
+  #vc-play { min-width:44px; font-size:12px!important; }
+  #vc-mid { display:grid; gap:7px; }
+  #vc-titulo { color:#9d988c; font:700 9px "Courier New",monospace; letter-spacing:.1em; text-transform:uppercase; }
+  #vc-barra { position:relative; height:9px; background:#34322d; border:1px solid #4b473d; cursor:pointer; }
+  #vc-progreso { position:absolute; inset:0 auto 0 0; width:0; background:var(--orange); pointer-events:none; }
+  #vc-right { display:flex; align-items:center; gap:10px; }
+  #vc-tiempo { color:#c3bfb3; font:700 10px "Courier New",monospace; letter-spacing:.06em; white-space:nowrap; }
+
+  #carga { position:fixed; inset:0; z-index:110; display:grid; place-items:center; background:#14130f; transition:opacity .5s .12s; }
   #carga.listo { opacity:0; pointer-events:none; }
+  .loader { width:min(500px,76vw); }
+  .loader-row { display:flex; justify-content:space-between; margin-bottom:11px; color:#b9b4a8; font:700 9px "Courier New",monospace; letter-spacing:.1em; text-transform:uppercase; }
+  .loader-track { height:7px; background:#292720; border:1px solid #555044; padding:1px; }
+  .loader-bar { height:100%; width:0; background:var(--orange); transition:width .16s; }
+  #error { position:fixed; z-index:120; left:0; right:0; top:var(--nav-h); padding:12px 22px; color:#fff; background:#842e28; font:11px "Courier New",monospace; }
+  .grain { position:fixed; z-index:8; inset:var(--nav-h) 0 0; pointer-events:none; opacity:.075; mix-blend-mode:soft-light; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.86' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E"); }
 
-  #error { position:fixed; left:0; right:0; top:0; background:#7a1f16;
-    padding:10px 16px; font-size:11px; z-index:20; display:none;
-    white-space:pre-wrap; }
+  @media(max-width:850px){
+    .brand { padding:0 13px; font-size:11px; letter-spacing:.09em; }
+    .brand.on::after { left:13px; right:13px; }
+    .nav-links { overflow-x:auto; }
+    .nav-link { min-width:75px; padding:0 10px; }
+    #intro h1 { font-size:56px; }
+    #volver { padding:12px 17px 12px 54px; font-size:11px; }
+    /* En vertical el cuadro del reproductor mide unos 350×200: con las
+       medidas de escritorio los controles se comen media imagen. Se achican
+       y se cae el título, que ya está en la ficha de la tela. */
+    #vc { padding:22px 8px 8px; gap:8px; }
+    #vc-titulo { display:none; }
+    #vc button { padding:7px 9px; font-size:9px; }
+    #vc-play { min-width:34px; font-size:11px!important; }
+    #vc-tiempo { font-size:9px; }
+    #vc-right { gap:6px; }
+    #video-back { left:12px; top:12px; }
+  }
+  @media(prefers-reduced-motion:reduce){ *,*::before,*::after { transition-duration:.01ms!important; } }
 </style>
 </head>
 <body>
-<div id="error"></div>
-<div id="carga">cargando</div>
+<div id="error" role="alert" hidden></div>
+<div id="carga" aria-live="polite"><div class="loader"><div class="loader-row"><span id="carga-paso">Cargando la habitación</span><span id="carga-num">00</span></div><div class="loader-track"><div class="loader-bar" id="carga-bar"></div></div></div></div>
+
+<nav id="nav" aria-label="Principal">
+  <button class="brand on" data-home>Iñaki Góngora</button>
+  <div class="nav-links">
+    <button class="nav-link" data-zone="web">Web<sup></sup></button>
+    <button class="nav-link" data-zone="video">Videos<sup></sup></button>
+    <button class="nav-link" data-zone="texto">Ensayos<sup></sup></button>
+    <button class="nav-link" data-zone="musica">Música<sup></sup></button>
+  </div>
+</nav>
+
 <div id="hud">
-  <div id="pista">clic en un objeto</div>
-  <div id="titulo"></div>
-  <button id="volver">← volver</button>
+  <button id="volver">Volver</button>
+  <div id="cursor-label"></div>
+  <div id="intro"><h1>La habitación<span>El portfolio de Iñaki Góngora</span></h1></div>
 </div>
 
-<script type="importmap">
-{ "imports": {
-    "three": "./lib/three.module.js",
-    "three/addons/": "./lib/addons/"
-} }
-</script>
-<script type="module" src="./sala.js"></script>
+<div id="video-stage" aria-hidden="true">
+  <div id="video-shell">
+    <!-- `auto`: la carga de la página espera sólo la cabecera, pero el cuerpo se
+         va bajando mientras tanto. Con `metadata` el archivo recién empezaba a
+         bajar al apretar play, y el video arrancaba trabándose. -->
+    <video id="video-el" playsinline preload="auto"></video>
+    <div id="vc">
+      <button id="vc-play" aria-label="Reproducir">▶</button>
+      <div id="vc-mid">
+        <div id="vc-titulo"></div>
+        <div id="vc-barra" role="slider" tabindex="0" aria-label="Posición" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="vc-progreso"></div></div>
+      </div>
+      <div id="vc-right">
+        <span id="vc-tiempo">--:-- / --:--</span>
+        <button id="vc-mute">Audio</button>
+        <button id="vc-pleno" aria-label="Pantalla completa">⛶</button>
+      </div>
+    </div>
+  </div>
+  <button id="video-back">Cerrar</button>
+</div>
+
+<div class="grain"></div>
+<script type="importmap">{ "imports": { "three":"./lib/three.module.js", "three/addons/":"./lib/addons/" } }</script>
+<script type="module" src="./sala.js?v=53"></script>
 </body>
 </html>

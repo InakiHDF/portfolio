@@ -35,9 +35,6 @@ ZONAS = {
               ["NOTEBOOK_EAST", "NOTEBOOK_EAST_COVER_TOP",
                "NOTEBOOK_EAST_COVER_BOTTOM", "TABLE_EAST_TOP",
                "SHEET_EAST_01", "SHEET_EAST_03", "SHEET_EAST_05"]),
-    "mi": ("sobre mi",
-           ["BED_FRAME_PROXY", "BLANKET_PROXY", "BACKPACK_BODY",
-            "BACKPACK_FLAP"]),
 }
 
 

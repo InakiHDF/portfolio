@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sala",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "python3 tools/servidor.py ${PORT:-8011} web"],
+      "port": 8011,
+      "autoPort": true
+    }
+  ]
+}

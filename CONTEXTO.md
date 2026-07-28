@@ -2,6 +2,189 @@
 
 Handoff para quien siga. Escrito el 26 de julio de 2026.
 
+## −1. La lista de trabajo está en `PEDIDOS.md` — empezar por ahí
+
+El 28/07/2026 Iñaki dejó nueve pedidos de una sola vez, desordenados a
+propósito: «vos lo hacés en el mejor orden, y si necesitás, por tandas». Están
+todos en **`PEDIDOS.md`**, con el estado de cada uno. Ese archivo manda sobre
+cualquier "pendiente" que diga este documento.
+
+Cómo quiere que se trabaje, y lo dijo explícito:
+
+- **Él hace los chequeos visuales, no el agente.** El agente verifica que
+  compile y que no haya errores; no se pone a recorrer la página.
+- **Por tandas**, y sólo se encadena lo que de verdad depende de un resultado
+  anterior. Entre tanda y tanda, esperar su confirmación visual.
+- **Dedicación absoluta en cada tarea**, como si fuera la única. Si son muchas y
+  no da, se hacen de a una — pero ninguna a medias.
+- Textual, sobre el ritmo de las animaciones: «es preferible que la cosa sea
+  lenta, con animaciones limpias, que cada cosa llegue a su lugar y nada se
+  teletransporte, antes que algo apurado porque sí. **NO HAY APURO. EN NADA.**»
+
+### Tanda 1, hecha y a la espera de su revisión
+
+Pantallas de monitor de un solo gris · luz del celular más tenue y cálida ·
+cámaras con curva y 5,9 veces más lentas · UI externa limpiada y sin el copy
+cliché · cursor sin lupa y botón de volver más grande · reproductor de video
+rehecho · la página no carga hasta estar entera · pie derecho en `cama_celular` ·
+**música borrada entera**.
+
+### Tanda 2, abierta
+
+Los tres rediseños grandes: web, video y escritura. Van después porque cada
+interfaz se dibuja para la cámara que la mira, y él todavía no aprobó los
+encuadres nuevos. El detalle de cada uno está en `PEDIDOS.md`.
+
+### Dos cosas para no volver a tropezar
+
+- **La caché del servidor de desarrollo.** `python3 -m http.server` dejaba al
+  navegador con la copia vieja de todo lo que no llevara `?v=`. Se perdieron dos
+  vueltas de verificación creyendo que el código no había cambiado. Ahora se usa
+  `tools/servidor.py`, que manda `no-store`, y los módulos llevan `?v=NN` en
+  tres lugares que se mueven juntos (ver `web/LEEME.md`).
+- **`CFG.camara` ya existía** y valía `"CAM_ISO_SW"`. Agregarle una clave nueva
+  con ese mismo nombre rompió la carga entera con un mensaje que no tenía nada
+  que ver («El modelo no contiene la cámara principal»). Las duraciones de viaje
+  viven en `CFG.viajes`.
+
+## 0.0 Actualización vigente — contenido real conectado (28/07/2026)
+
+Esta sección manda sobre cualquier apartado anterior que diga “placeholder”,
+“pendiente” o “URL de ejemplo”.
+
+**Se acabaron los placeholders.** Las cuatro zonas muestran contenido real y
+los 17 enlaces de la página abren destinos verificados.
+
+- El contenido ya no vive en `sala.js`: está en **`web/contenido.js`**, que lo
+  **genera `tools/fetch_contenido.py`**. No editar el módulo a mano. El script
+  baja el archivo de Substack, captura los tres sitios con Chrome headless y
+  reescribe todo; si una fuente se cae, aborta sin dejar nada a medias.
+- Substack real: `inakigongorarosi.substack.com`, 5 artículos con portada.
+- Sitios: helicopters.ar, Cru y Opus, con capturas propias en el monitor.
+- Video: `Videos/Cru. Launch Film.mov` transcodificado a
+  `web/videos/cru-launch.mp4` (35 s, 5,2 MB; el original tenía audio PCM y
+  pesaba 52 MB).
+- Música dejó de estar pendiente: la pared de vinilos se vuelve el tablero de
+  AOTY (`InakiHDF`). Cinco fichas de discos favoritos —tipográficas: **no se
+  rehostean tapas ajenas**— más la tarjeta del perfil con un enlace por fila.
+- **AOTY está detrás de Cloudflare**, tanto el sitio como el CDN de tapas. No
+  se puede scrapear ni bajar imágenes de ahí: sus datos van fijos arriba de
+  `fetch_contenido.py` y se actualizan a mano. `curl` recibe 403; un navegador
+  entra bien. No confundir eso con un enlace roto.
+- El Python de este Mac **no trae certificados raíz**: `urllib` falla en
+  cualquier https. Por eso el script descarga con `curl`.
+
+### La transición del video, que era el bug
+
+Antes la vista fullscreen se abría 620 ms después del click, con la cámara
+todavía en diagonal a la tela: la imagen saltaba de un escorzo a un rectángulo
+recto. Ahora son dos tiempos separados y el reproductor es de verdad:
+
+1. La cámara vuela al **frontal exacto** del proyector mientras el video real
+   ya corre sobre la tela como `VideoTexture`. No se abre nada hasta llegar.
+2. Recién ahí el reproductor arranca ocupando **exactamente** el rectángulo que
+   la tela ocupa en pantalla y crece hasta el cuadro entero.
+
+Es el mismo `<video>` el que pinta la tela y el que se agranda, así que el
+cuadro nunca salta. Medido: la cámara llega a `(0.3002, 1.75, −0.7815)` con
+quaternion identidad contra una pantalla centrada en `(0.300, 1.750, −2.665)`.
+
+**Ese vuelo tiene duración fija**, no usa el lerp exponencial del resto de la
+página: el lerp nunca llega del todo, y acá hay que *saber* que la cámara está
+perpendicular antes de abrir. Es la razón de que exista `volarA()`.
+
+### Dos cosas que cambiaron de fondo
+
+- **Todos los suavizados pasaron a medirse en segundos** (`suave(k, dt)`). Antes
+  cada lerp usaba un factor fijo por cuadro: en una pantalla de 144 Hz los
+  viajes de cámara salían más del doble de rápidos que en una de 60, y en una
+  pestaña en segundo plano no llegaban nunca. Los factores de `CFG` no
+  cambiaron y a 60 fps el movimiento es idéntico.
+- **Los hotspots ya no son números a ojo en metros.** Los rectángulos de los
+  botones viven una sola vez en `RECTS`, en píxeles de su canvas, y los comparten
+  el dibujo y `hotspotDeCanvas()`. Mover un botón es tocar un número.
+
+### La cámara de música no sale del GLB — leer
+
+Es la única excepción a la regla del apartado 6.1. `CAM_SECTION_MUSICA` es un
+plano general del rincón: a esa distancia las fichas no se leen. La página
+calcula un frontal a partir de la caja de los seis vinilos. **No es una pose
+escrita a mano**: sale de la geometría (centro, normal y tamaño), igual que el
+frontal del proyector. Si Iñaki prefiere encuadrarla en Blender, alcanza con
+poner `CFG.musicaDesdeGlb = true`.
+
+### Pendiente conocido
+
+Sobre el final del pase de página, cuando la hoja ya quedó apoyada a la
+izquierda, su dorso se lee girado 180°. Es anterior a esta tanda y dura una
+fracción de segundo. Invertir `pageTurnBackSurface.texture.rotation` **no** lo
+corrige —se probó y se revirtió—, así que el error está en otro punto de la
+cadena. Queda anotado en el código.
+
+## 0. Actualización — MVP web verificado (27 de julio de 2026)
+
+La página ya fue abierta y probada en navegador, tanto en escritorio como en
+móvil. El primer visor cargaba pero quedaba casi completamente blanco: las
+luces puntuales del GLB llegaban en candelas (hasta 4.891) y se usaban sin
+conversión. `web/sala.js` ahora aplica una escala artística de `0.00115` y una
+exposición de `0.78`; no reemplaza el horneado pendiente, pero deja un MVP
+visible y utilizable.
+
+La web tiene ahora una interfaz completa inspirada en el lenguaje de
+Basement: barra fija negra, acento naranja, escena 3D a pantalla completa,
+grano y scanlines, cursor contextual, navegación por las cinco zonas del GLB,
+viajes de cámara, paneles de contenido con placeholders, sonido generativo,
+carga con progreso y layout móvil. Las 31 zonas clicables se verificaron en
+el navegador y no hay errores nuevos en consola.
+
+Los archivos que definen el MVP son `web/index.html` y `web/sala.js`. Los
+textos y cantidades del panel son deliberadamente provisorios y viven en el
+objeto `ARCHIVO` al principio de `sala.js`.
+
+Corrección de cámara del 27/07: la vista de reposo conserva literalmente la
+posición, quaternion, FOV y proporción 1712×945 de `CAM_ISO_SW`. El cuadro
+estático fue aprobado por Iñaki como el máximo absoluto. El movimiento usa un
+recorte interno de 5 % y desplaza esa ventana según el mouse; nunca mueve
+ni rota la cámara y nunca revela nada fuera del cuadro de Blender. En otras
+proporciones el canvas usa `cover` antes de aplicar ese mismo margen interno.
+
+Lightmap HQ del 27/07: `HABITACION_v013.blend` sigue intacto. La copia de
+trabajo actual es `blender/HABITACION_v017_LIGHTMAP_HQ.blend`; tiene escalas
+aplicadas, UV2 `LIGHTMAP` global y un bake difuso directo+indirecto de 2048 px
+/ 32 muestras. El atlas limpio está en
+`blender/textures/lightmap/room_lightmap_2048.png`, el crudo se conserva como
+`room_lightmap_2048_raw.png` y el GLB web es
+`web/modelos/habitacion-lightmap-hq.glb`. `LIGHT_SCREEN`, `PROJECTOR_BEAM` y la
+emisión de la pantalla fueron excluidos del bake. La web recrea el proyector
+con un SpotLight corto entre `PROJECTOR_LENS` y `SCREEN_SURFACE`.
+
+Corrección UV del 27/07: el primer export horneado dejó por error `LIGHTMAP`
+como UV de render y rompió todas las texturas implícitas. Ahora UV0 vuelve a
+ser el canal activo de cada mesh y el atlas usa exclusivamente UV2. El
+exportador repara y valida esa separación antes de generar el GLB. El archivo
+actual tiene 90 texturas base en `TEXCOORD_0` y 94 lightmaps en `TEXCOORD_1`.
+
+El esquema actual es híbrido: el atlas conserva luces de área y rebote; las 9
+luces puntuales/spot exportables se mantienen a escala `0.0001` para recuperar
+reflejos que un bake difuso no contiene. El atlas se transporta como
+`occlusionTexture`/`TEXCOORD_1` y `sala.js` lo reasigna a `lightMap`. El bake
+crudo se limpia con `tools/denoise_lightmap.py` antes de reexportar. La web usa
+AgX con la exposición +0.20 de ISO V12 y lightmap intensity 3.0. La geometría
+del cono del proyector se oculta; su SpotLight web permanece activo. Las
+texturas artísticas usan `Nearest`, pero el lightmap usa filtrado lineal y
+mipmaps: nunca volver a pixelar el atlas de iluminación.
+
+Cámaras de sección del 27/07: están incluidas en la copia actual
+`blender/HABITACION_v017_LIGHTMAP_HQ.blend`. En la colección
+`50_CAMERAS_SECTION` están `CAM_SECTION_WEB`, `CAM_SECTION_VIDEO`,
+`CAM_SECTION_TEXTO`, `CAM_SECTION_MUSICA` y `CAM_SECTION_MI`. La web ya no
+calcula acercamientos desde bounding boxes: cualquier objeto de una zona viaja
+siempre a la cámara fija de esa zona, interpolando posición, quaternion y FOV
+exportados. Los encuadres actuales son puntos de partida para ajuste manual.
+No renombrar las cámaras. `SHEET_EAST_01` quedó separada antes del último bake;
+las polaroids 01, 03 y 04 volvieron a su composición original y
+`PHOTO_NORTH_02`, la central que se superponía, fue eliminada antes de hornear.
+
 ---
 
 ## 1. Qué es esto
@@ -345,9 +528,189 @@ pasos numerados, con el atajo y qué debería ver después de cada paso.
 
 ---
 
+## 11. Actualización vigente — interfaz dentro del mundo (27/07/2026)
+
+Esta sección reemplaza el estado antiguo de los apartados 6, 7 y 10 cuando se
+contradigan.
+
+- La luz HQ ya fue horneada y aprobada. La fuente estable es
+  `HABITACION_v017_LIGHTMAP_HQ.blend` y el atlas es
+  `textures/lightmap/room_lightmap_2048.png`.
+- La web actual carga `web/modelos/habitacion-world-ui.glb`.
+- `HABITACION_v018_WORLD_UI.blend` es una copia de v017 que sólo acerca
+  `CAM_SECTION_TEXTO` al cuaderno: 0,70 m, lente 36 mm. No hubo rebake.
+- La UI Basement fue retirada: nueva navegación flotante, acento menta, sin
+  panel lateral y sin “Sobre mí”.
+- Films funciona en la pantalla del proyector; Web en ambos monitores; Essays
+  abre el cuaderno y usa páginas dinámicas. Son texturas Canvas de Three y no
+  alteran el lightmap. Music queda conscientemente pendiente.
+- El proyector está apagado en Home y se enciende al entrar a Films.
+- El cuaderno anima `NOTEBOOK_EAST_COVER_TOP`, oculta la banda y muestra dos
+  páginas más una guarda editorial en la cara interior. Al volver se restaura.
+- Los placeholders viven en `CONTENIDO`, al comienzo de `web/sala.js`.
+- Verificación real en navegador completada: carga, cuatro cámaras, pantalla,
+  monitores, apertura/cierre, cambio por flechas y retorno a Home. Cero errores
+  de consola.
+- Próximo trabajo recomendado: revisión visual de Iñaki; después retocar sólo
+  las cámaras que él marque y conectar contenido/URLs reales.
+
+### Refinamiento retro posterior (descartado; sólo histórico)
+
+Esta actualización reemplaza la identidad menta mencionada arriba:
+
+- La UI de cards/pills fue descartada. `index.html` usa una identidad inspirada
+  en interfaces de videojuegos 2000/PS2: ángulos rectos, cortes diagonales,
+  azul/rosa cromático, tipografía mono/condensada y scanlines.
+- Fuente de esa iteración: `HABITACION_v019_RETRO_UI.blend`; GLB de esa iteración:
+  `web/modelos/habitacion-retro-ui.glb`.
+- Video 36 mm y Web 34 mm: ahora las superficies ocupan el encuadre y se leen.
+- Texto 40 mm casi cenital, centrado en un libro abierto de dos anchos.
+- La tapa gira desde un pivot runtime en el lomo izquierdo. La página izquierda
+  acompaña la tapa y una hoja adicional anima el paso de página.
+- Proyector y monitores tienen rampas de encendido/apagado. Los cambios de
+  video/proyecto colapsan la señal antes de reemplazar contenido.
+- Hover específico por acción; click fuera de la superficie activa vuelve al
+  cuarto.
+- Validación visual completa realizada sin errores de consola.
+
+---
+
 ## 10. Lo primero que haría quien siga
 
 1. **Abrir la página en el navegador** y ver qué sale. Nadie lo hizo todavía.
 2. **Cerrar los sectores abiertos** con `close_sector.py`, que hoy están
    expuestos a que un script los borre.
 3. Recién ahí, el horneado.
+
+---
+
+## 12. Actualización vigente — UI física sobria / v020 (27/07/2026)
+
+Esta sección reemplaza por completo el “Refinamiento retro posterior” de la
+sección 11 y también el apartado 10 cuando se contradigan.
+
+- Se descartó la asociación PS2 = neón/glitch/arcade. La identidad actual es
+  una interfaz de archivo/consola de comienzos de los 2000: carbón, papel,
+  naranja apagado, azul grisáceo, bordes rectos y tipografía utilitaria.
+- La barra superior es sólida, mide 58 px y queda fuera del render; nunca tapa
+  información de la habitación.
+- Fuente de cámaras: `blender/HABITACION_v020_CONSOLE_UI.blend`. GLB servido:
+  `web/modelos/habitacion-console-ui.glb`. Ambos parten del lightmap HQ
+  aprobado y no cambian geometría ni iluminación.
+- `CAM_SECTION_WEB` fue elevada para liberar el contenido de la silla. Video
+  conserva el plano útil de la pantalla. Texto mira el cuaderno desde el lado
+  de la silla y lo presenta vertical, en su eje natural de lectura.
+- Web ya no usa planos flotantes: las dos CanvasTexture quedan insetadas dentro
+  de los biseles. El monitor principal imita una ventana web de época y el
+  secundario funciona como índice/selector.
+- Video es una proyección sobre tela con lógica de tira/contact sheet. No tiene
+  boot de monitor. La luz y la imagen aparecen/desaparecen por una rampa suave.
+  “Ver video” mueve primero la cámara hacia la tela y luego abre una vista de
+  video a pantalla completa.
+- El cuaderno recuperó su bisagra superior original. La tapa abre como estaba
+  modelada; la página izquierda vive en su cara interior y la derecha en el
+  cuerpo. El contenido está rotado para leerse desde la silla.
+- El pase de página es una hoja opaca con contenido real en ambas caras,
+  gira sobre la bisagra física, cambia el spread a mitad del recorrido y usa
+  polygon offset para no recortarse contra la página inferior.
+- Dentro de las secciones no hay tooltip en el mouse. Sólo hay cursor y botones
+  visibles con hotspots ajustados a sus límites. Click fuera vuelve a Home.
+  El tooltip contextual existe únicamente en Home.
+- Verificación visual real realizada en navegador para Home, Video, transición
+  a fullscreen, Web, Texto, botones del libro y pase de página. `node --check`
+  y `git diff --check` pasan.
+
+Próximo paso recomendado: revisión visual de Iñaki sobre esta tanda. Música y
+URLs/contenido definitivos siguen conscientemente pendientes.
+
+---
+
+## 13. El avatar (27/07/2026)
+
+Reemplaza el apartado 7.2. **Las poses las hace Iñaki a mano, no un script.**
+El objetivo es que en cada carga de la página el avatar aparezca en otro lado
+haciendo otra cosa, sorteado.
+
+### El circuito
+
+```
+blender/AVATAR_POSE.blend      ← Iñaki posa y ubica acá, una Action por pose
+        │  tools/avatar.sh
+        ▼
+web/modelos/avatar/*.glb       ← un GLB por pose, con pose y lugar adentro
+        │  + poses.json
+        ▼
+web/avatar.js                  ← sortea una, materiales retro, luz, movimiento
+```
+
+`AVATAR_POSE.blend` lo genera `blender/scripts/avatar_pose_file.py` a partir de
+`HABITACION_v020_CONSOLE_UI.blend` + `model-2.glb`. Trae el avatar **sin tocar**
+(29.123 caras, texturas de 1024 px) y la habitación entera como referencia, en
+la colección `REFERENCIA` y bloqueada con `hide_select`. Las coordenadas son las
+mismas que las del archivo maestro: donde quede ahí queda en la página.
+
+**El .blend tiene siempre UNA pose: la que se está editando.** Las terminadas
+viven como JSON en `blender/poses/<nombre>.json` — dónde está parado el avatar,
+la rotación de cada hueso y la transformación y visibilidad de lo que lo
+acompaña. `tools/pose.sh guardar <nombre>` las saca del .blend sin tocarlo;
+`tools/pose.sh abrir <nombre>` las devuelve.
+
+**Nada de Actions.** Se probó y salió mal: una Action con fotogramas clavados le
+pisa la pose viva cada vez que Blender recalcula la animación, y cambiar de modo
+con `Tab` la recalcula. Borró una pose entera de trabajo a mano. Un JSON no se
+ejecuta ni recalcula. `tools/arreglar_blend.sh` le saca la Action a un archivo
+que todavía la tenga, sin tocar la pose.
+
+Regla de exportación: sale todo lo que **no** esté en `REFERENCIA`, salvo lo
+marcado como no visible en la pose. Un objeto que sobra en una pose se oculta
+antes de guardarla; no hace falta borrarlo.
+
+Y una convención de nombres: cualquier malla con `_LUZ` en el nombre la página
+la convierte en superficie que emite y le cuelga un `PointLight`. Así está
+hecha la pantalla del teléfono (`TELEFONO_PANTALLA_LUZ`).
+
+La página baja **un solo GLB por visita**, el sorteado: tener veinte poses no
+la hace más lenta, sólo ocupa más disco. `poses.json` lleva una versión con la
+hora de la corrida, colgada de la URL del GLB: sin eso el navegador sigue
+sirviendo el modelo viejo de su caché y parece que exportar no hizo nada. Para
+revisar una pose en particular desde la consola:
+`__sala.av.obj().usar("cama_celular")`.
+
+**Volver a correr `avatar_pose_file.py` reconstruye el .blend desde cero.** Los
+JSON de `blender/poses/` sobreviven; la pose que estaba en el .blend sin
+guardar, no.
+
+### Lo que se aprendió, para no repetirlo
+
+- **El estilo del avatar es low-poly retro deliberado**, tipo Fears to Fathom:
+  manos como mitones, cara de pocos triángulos, textura pixelada a la vista. La
+  lectura de "personaje suave y oscuro que se integra por la luz" es incorrecta.
+- **Decimar con Blender destruye las siluetas.** Las zapatillas al 5 % quedaron
+  hechas trizas. Se usa `gltf-transform simplify` (meshoptimizer) con
+  `--lock-border`, que respeta costuras de UV y bordes abiertos: de 29.123 a
+  12.621 triángulos sin romper nada.
+- **Primero posar, después decimar.** Al revés se posa sobre una malla rota.
+- **`export_rest_position_armature=False`** es obligatorio al exportar. En su
+  valor por defecto (True) el exportador escribe la postura de reposo y el
+  avatar llega a la página en T, con la pose perdida entera.
+- **El importador de glTF revienta dentro de los .blend horneados**: el grupo
+  `glTF Material Output` que dejó el bake tiene un solo socket y el importador
+  lo toma por suyo. Hay que renombrarlo durante la importación y devolverlo
+  después (el exportador lo busca por ese nombre).
+- **Lo que apoya en la cama es la pelvis, no el abrigo.** Medir el punto más
+  bajo de la ropa deja el cuerpo flotando 12 cm, porque la capucha queda
+  tendida bajo los hombros.
+- **Posar por rotaciones numéricas a ciegas no funciona.** Se intentó y salió un
+  maniquí. Para los brazos, si hay que hacerlo por código, va IK de dos huesos
+  (dónde va la mano + hacia dónde cae el codo), no rotaciones de hombro y codo.
+
+### Lo que hace la página y no puede estar horneado
+
+`web/avatar.js` agrega el avatar **sin una sola transformación** y se ocupa de:
+materiales retro (fuera normal/metal, filtrado Nearest), las mallas `_LUZ` como
+`PointLight` de alcance corto —la única luz que llega a ese rincón de la cama—,
+una práctica tenue ubicada **a partir de la cadera del propio avatar**, para que
+funcione esté donde esté en el cuarto, y el movimiento: respiración de ~14 por
+minuto, deriva de cabeza y dedos, todo con sinusoides de períodos no múltiplos
+para que no cicle nunca igual. Se suma **encima** de la pose que venga del GLB,
+así que sigue funcionando con cualquier pose que él haga.
