@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#1d1c18">
-<title>Iñaki Góngora</title>
+<title>INNEN</title>
 <style>
   :root {
     --bar:#1d1c18;
@@ -32,10 +32,28 @@
     background:var(--bar); border-bottom:4px solid #0b0b09;
     box-shadow:inset 0 -1px #4b473d; text-transform:uppercase;
   }
-  .brand { position:relative; display:flex; align-items:center; padding:0 26px 0 21px; border:0; border-right:1px solid #090907; background:none; cursor:pointer; text-decoration:none; white-space:nowrap; color:#8e897d; font:700 13px "Arial Narrow",Arial,sans-serif; letter-spacing:.14em; }
+  /* El nombre de la barra: las dos mismas líneas que el título de abajo, la
+     misma letra en cada una y alineadas a la izquierda como un cabezal de
+     diario. La celda se ensancha lo que haga falta —la barra no puede crecer a
+     lo alto, pero a lo ancho sobra sitio— así el renglón de la firma entra sin
+     apretarse.
+
+     La marca de "estás en la habitación" es una barra vertical a la izquierda y
+     no el subrayado que usan los enlaces de al lado: debajo de un bloque de dos
+     líneas el subrayado le quedaba pegado a la firma, como si la tachara. La
+     barra al costado ya es un idioma de la página, es la que tiene el botón de
+     VOLVER. */
+  /* Las mayúsculas van acá y no heredadas de `#nav`: un `button` no hereda
+     `text-transform`, y por eso la firma salía en caja mixta mientras todo lo
+     demás de la barra iba en mayúsculas. */
+  .brand { position:relative; display:grid; align-content:center; justify-items:start; gap:4px; padding:0 32px 0 21px; border:0; border-right:1px solid #090907; background:none; cursor:pointer; text-decoration:none; text-transform:uppercase; color:#8e897d; }
+  .brand b { white-space:nowrap; font:700 19px/1 "Arial Narrow",Arial,sans-serif; letter-spacing:.13em; }
+  .brand small { white-space:nowrap; font:700 8px/1 "Courier New",monospace; letter-spacing:.07em; color:#6e695e; }
   .brand:hover { color:#d7d2c5; background:#24231e; }
+  .brand:hover small { color:#8b8578; }
   .brand.on { color:#f1ede2; background:var(--bar-2); }
-  .brand.on::after { content:""; position:absolute; left:21px; right:26px; bottom:7px; height:3px; background:var(--orange); }
+  .brand.on small { color:#8b8578; }
+  .brand.on::after { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--orange); }
   .nav-links { display:flex; height:100%; }
   .nav-link { position:relative; min-width:98px; padding:0 17px; border:0; border-right:1px solid #11100e; background:none; cursor:pointer; white-space:nowrap; text-transform:uppercase; color:#8e897d; font:700 9px Verdana,sans-serif; letter-spacing:.08em; }
   .nav-link:hover { color:#d7d2c5; background:#24231e; }
@@ -44,9 +62,83 @@
   .nav-link sup { margin-left:5px; color:#6f8795; font:700 7px "Courier New",monospace; }
 
   #hud { position:fixed; inset:var(--nav-h) 0 0; z-index:20; pointer-events:none; }
-  #intro { position:absolute; left:26px; bottom:24px; padding-left:15px; border-left:5px solid var(--orange); transition:opacity .3s; text-transform:uppercase; }
-  #intro h1 { margin:0; font:700 clamp(42px,6.4vw,92px)/.82 "Arial Narrow",Arial,sans-serif; letter-spacing:-.07em; color:#ece8dc; }
-  #intro h1 span { display:block; margin-top:.14em; color:#8f9698; font:700 .2em/1.1 "Courier New",monospace; letter-spacing:.16em; }
+
+  /* El título. Uno solo, siempre abajo y al medio: dice INNEN cuando no se está
+     señalando nada y el nombre de la sección cuando sí, con un renglón chico
+     debajo. Antes esto eran dos cosas —un bloque fijo abajo a la izquierda y una
+     etiqueta de 9 px pegada al cursor—, y la etiqueta era tan chica que el
+     nombre de lo que se iba a abrir no se leía.
+
+     La letra: estrecha, muy junta y estirada a lo alto. La estrechez y el
+     interletrado negativo son de la fuente y del `letter-spacing`; la altura la
+     pone un `scaleY`, que es lo que hace que la palabra se lea como un sello y
+     no como un renglón. Nada de sombras: una sombra debajo de una tipografía
+     grande es una mancha, y encima acá tapaba el remate de las letras. El
+     contraste lo pone el velo de abajo, que es la misma solución que usa
+     cualquier ficha de película sobre un fotograma.
+
+     `transform-origin` abajo: al estirarse, la palabra crece hacia arriba y la
+     línea de base no se mueve. Con el origen en el medio el bloque entero
+     bailaba medio píxel cada vez que cambiaba de palabra. */
+  #titulo { position:absolute; left:0; right:0; bottom:0; z-index:2; padding:0 3vw 4.6vh; text-align:center; pointer-events:none; transition:opacity .38s ease; }
+  /* Dentro de una sección no hay título: se va entero, con velo y todo. */
+  #titulo.oculto { opacity:0; }
+  #titulo::before {
+    content:""; position:absolute; z-index:-1; inset:auto 0 0; height:32vh;
+    background:linear-gradient(to top,rgba(6,6,5,.74),rgba(6,6,5,.38) 42%,rgba(6,6,5,0));
+  }
+  #titulo h1 {
+    margin:0; white-space:nowrap; text-transform:uppercase;
+    font:700 clamp(30px,5.4vw,70px)/.9 "Arial Narrow",Arial,sans-serif;
+    letter-spacing:-.018em; color:#f5f2e9;
+    transform:scaleY(1.14); transform-origin:50% 100%;
+  }
+  #titulo p {
+    margin:.72em 0 0; white-space:nowrap; text-transform:uppercase;
+    font:700 clamp(11px,1.22vw,16px)/1 "Courier New",monospace;
+    letter-spacing:.1em; color:#b0a99a;
+    /* Ocupa su renglón aunque esté vacío: si no, al quedarse sin subtítulo el
+       título baja de golpe y el cambio de palabra se vuelve un salto. */
+    min-height:1em;
+  }
+  /* El cambio de palabra: apenas un desvanecido con un milímetro de caída, no
+     un golpe. El renglón chico sale y entra un pelo después que el título, que
+     es lo que hace que se lea como una sola cosa moviéndose y no como dos.
+     Los 210 ms del cruce los cuenta sala.js. */
+  #titulo h1, #titulo p { transition:opacity .3s cubic-bezier(.4,0,.2,1), transform .3s cubic-bezier(.4,0,.2,1); }
+  #titulo p { transition-delay:.05s; }
+  #titulo.cambiando h1 { opacity:0; transform:scaleY(1.14) translateY(4px); }
+  #titulo.cambiando p { opacity:0; transform:translateY(4px); }
+
+  /* Los puntos. Uno por sección, puestos cuadro a cuadro sobre la cosa que
+     abren. Están hechos para que se noten sin taparle nada a la habitación: el
+     núcleo es translúcido y quien hace el trabajo de llamar la atención es el
+     anillo que late. Sólidos y con borde negro se veían como cuatro chinches
+     clavadas sobre el render. */
+  #puntos { position:absolute; inset:0; z-index:1; }
+  .punto {
+    position:absolute; left:0; top:0; width:44px; height:44px; margin:-22px 0 0 -22px;
+    padding:0; background:none; border:0; cursor:pointer; pointer-events:auto;
+    opacity:0; transition:opacity .6s ease;
+  }
+  #puntos.on .punto { opacity:1; }
+  .punto::before, .punto::after {
+    content:""; position:absolute; left:50%; top:50%; width:8px; height:8px;
+    margin:-4px 0 0 -4px; border-radius:50%;
+  }
+  .punto::before {
+    background:rgba(240,236,224,.5); box-shadow:0 0 7px rgba(0,0,0,.45);
+    transition:transform .32s cubic-bezier(.4,0,.2,1), background .32s ease;
+  }
+  .punto::after { border:1px solid rgba(240,236,224,.42); animation:latido 3.4s cubic-bezier(.2,.6,.3,1) infinite; animation-delay:var(--fase,0s); }
+  .punto:hover::before, .punto:focus-visible::before { transform:scale(1.5); background:rgba(240,236,224,.92); }
+  .punto:hover::after, .punto:focus-visible::after { animation-duration:1.7s; border-color:rgba(201,120,58,.75); }
+  .punto:focus-visible { outline:0; }
+  @keyframes latido {
+    0% { transform:scale(1); opacity:.5; }
+    66% { transform:scale(3.2); opacity:0; }
+    100% { transform:scale(3.2); opacity:0; }
+  }
   /* Era tan chico que no se notaba: ahora es un botón de verdad. El `ESC` se
      centra contra la altura del botón, no contra la línea de texto: si no,
      queda una pizca más arriba que "VOLVER" porque mide 10 px contra 12. */
@@ -54,8 +146,6 @@
   #volver::before { content:"ESC"; position:absolute; left:20px; top:50%; transform:translateY(-50%); padding:3px 6px; color:#cdd7db; background:#3a3830; font-size:10px; line-height:1; }
   #volver.on { opacity:1; transform:none; }
   #volver:hover { background:#332f27; }
-  #cursor-label { position:absolute; left:0; top:0; opacity:0; transform:translate(15px,13px); padding:7px 10px; color:#1a1915; background:#ded9cb; border-left:4px solid var(--orange); font:700 9px "Courier New",monospace; letter-spacing:.06em; text-transform:uppercase; transition:opacity .08s; }
-  #cursor-label.on { opacity:1; }
 
   /* El reproductor. `#video-stage` es sólo el telón: el que se mueve y crece
      es `#video-shell`, que arranca justo encima del rectángulo que ocupa la
@@ -114,11 +204,19 @@
   .grain { position:fixed; z-index:8; inset:var(--nav-h) 0 0; pointer-events:none; opacity:.075; mix-blend-mode:soft-light; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.86' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E"); }
 
   @media(max-width:850px){
-    .brand { padding:0 13px; font-size:11px; letter-spacing:.09em; }
-    .brand.on::after { left:13px; right:13px; }
+    /* En pantalla angosta la firma no entra al lado de las cuatro secciones y
+       compite con ellas por el mismo renglón: queda sólo el nombre. Está igual
+       abajo, en el título. */
+    .brand { padding:0 15px 0 14px; gap:0; }
+    .brand b { font-size:15px; letter-spacing:.1em; }
+    .brand small { display:none; }
+    .brand.on::after { width:3px; }
     .nav-links { overflow-x:auto; }
     .nav-link { min-width:75px; padding:0 10px; }
-    #intro h1 { font-size:56px; }
+    #titulo { padding-bottom:3.4vh; }
+    #titulo h1 { font-size:clamp(24px,7.4vw,40px); }
+    #titulo p { font-size:10px; margin-top:.8em; }
+    .punto { width:38px; height:38px; margin:-19px 0 0 -19px; }
     #volver { padding:12px 17px 12px 54px; font-size:11px; }
     /* En vertical el cuadro del reproductor mide unos 350×200: con las
        medidas de escritorio los controles se comen media imagen. Se achican
@@ -131,7 +229,12 @@
     #vc-right { gap:6px; }
     #video-back { left:12px; top:12px; }
   }
-  @media(prefers-reduced-motion:reduce){ *,*::before,*::after { transition-duration:.01ms!important; } }
+  /* El latido del punto es la única animación que corre sola y para siempre:
+     con movimiento reducido se apaga y queda el punto quieto, que igual se ve. */
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after { transition-duration:.01ms!important; }
+    .punto::after { animation:none; opacity:.5; }
+  }
 </style>
 </head>
 <body>
@@ -139,7 +242,7 @@
 <div id="carga" aria-live="polite"><div class="loader"><div class="loader-row"><span id="carga-paso">Cargando la habitación</span><span id="carga-num">00</span></div><div class="loader-track"><div class="loader-bar" id="carga-bar"></div></div></div></div>
 
 <nav id="nav" aria-label="Principal">
-  <button class="brand on" data-home>Iñaki Góngora</button>
+  <button class="brand on" data-home><b>INNEN</b><small>Por Iñaki Góngora Rosi</small></button>
   <div class="nav-links">
     <button class="nav-link" data-zone="web">Web<sup></sup></button>
     <button class="nav-link" data-zone="video">Videos<sup></sup></button>
@@ -150,8 +253,8 @@
 
 <div id="hud">
   <button id="volver">Volver</button>
-  <div id="cursor-label"></div>
-  <div id="intro"><h1>La habitación<span>El portfolio de Iñaki Góngora</span></h1></div>
+  <div id="puntos"></div>
+  <div id="titulo"><h1>INNEN</h1><p>Por Iñaki Góngora Rosi</p></div>
 </div>
 
 <div id="video-stage" aria-hidden="true">
@@ -178,6 +281,6 @@
 
 <div class="grain"></div>
 <script type="importmap">{ "imports": { "three":"./lib/three.module.js", "three/addons/":"./lib/addons/" } }</script>
-<script type="module" src="./sala.js?v=53"></script>
+<script type="module" src="./sala.js?v=58"></script>
 </body>
 </html>

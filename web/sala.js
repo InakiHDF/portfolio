@@ -8,8 +8,8 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 // Sin eso el navegador sirve la copia vieja de su caché y parece que editar el
 // archivo no hizo nada. `tools/servidor.py` manda `no-store` para lo mismo, pero
 // una entrada ya guardada de antes sobrevive igual: el número la invalida.
-import { crearAvatar } from "./avatar.js?v=53";
-import { CONTENIDO } from "./contenido.js?v=53";
+import { crearAvatar } from "./avatar.js?v=58";
+import { CONTENIDO } from "./contenido.js?v=58";
 
 const CFG = {
   glb: "./modelos/habitacion-console-ui.glb?v=1",
@@ -110,10 +110,29 @@ const RECTS = {
 
 const REPRESENTANTE = { web: "MONITOR_MAIN_PANEL", video: "SCREEN_SURFACE", texto: "NOTEBOOK_EAST", musica: "VINYL_WALL_01" };
 const ZONAS = new Set(Object.keys(REPRESENTANTE));
+
+/**
+ * El nombre de la casa y el de cada sección, tal como se leen en el título
+ * grande. No salen del GLB: ahí `zona` es una etiqueta técnica en minúscula
+ * ("texto", "musica") y lo que se muestra es otra cosa.
+ *
+ * El punto de cada sección se pone sobre UNA cosa concreta de la habitación: el
+ * objeto representante. Música es la excepción —su representante es un vinilo
+ * cualquiera de la punta de la pared— y ahí el punto va sobre el vinilo del
+ * medio del grupo. Sobre el vinilo, no sobre el centro geométrico del grupo:
+ * ese centro cae en el aire, delante de la pared, y un punto flotando no se
+ * lee como "esto se puede abrir".
+ */
+const TITULO_ZONA = { web: "Web", video: "Videos", texto: "Ensayos", musica: "Música" };
+const MARCA = "Innen", FIRMA = "Por Iñaki Góngora Rosi", INVITACION = "Explorar colección";
+const ANCLA_AL_MEDIO = new Set(["musica"]);
+
 const INDICE = { web: 0, video: 0, texto: 0 };
 const $ = (id) => document.getElementById(id);
 const carga = $("carga"), cargaBar = $("carga-bar"), cargaNum = $("carga-num"), cargaPaso = $("carga-paso");
-const volver = $("volver"), intro = $("intro"), cursorLabel = $("cursor-label");
+const volver = $("volver");
+const tituloCaja = $("titulo"), tituloTexto = tituloCaja.querySelector("h1");
+const tituloPie = tituloCaja.querySelector("p"), puntosCapa = $("puntos");
 
 /* ─── La carga ─────────────────────────────────────────────────────────────
  *
@@ -254,6 +273,16 @@ function aplicarPaneoCasa(intensidad) {
 
 function proyeccionDeDetalle() { camera.zoom = 1; camera.updateProjectionMatrix(); }
 
+/**
+ * Dónde cayó el canvas dentro del `#hud`, en píxeles. El canvas está apaisado y
+ * centrado a mano —no ocupa la ventana entera—, así que para poner un punto de
+ * HTML encima de una cosa del mundo hace falta este rectángulo. Se guarda acá
+ * en vez de medirlo con `getBoundingClientRect` en cada cuadro: los números ya
+ * los calcula `ajustarTamano`, y leer el DOM sesenta veces por segundo obliga
+ * al navegador a rehacer el diseño para nada.
+ */
+const marco = { x: 0, y: 0, ancho: 1, alto: 1 };
+
 function ajustarTamano() {
   const navH = 58, viewportW = Math.max(1, innerWidth), viewportH = Math.max(1, innerHeight - navH);
   const aspectoViewport = viewportW / viewportH;
@@ -274,6 +303,9 @@ function ajustarTamano() {
   renderer.setSize(w, h, false);
   composer?.setSize(w, h);
   bloomPass?.resolution.set(w, h);
+  // Dentro del `#hud`, que ya arranca debajo de la barra: por eso la altura de
+  // la barra no entra en la `y`.
+  marco.x = (viewportW - w) * .5; marco.y = (viewportH - h) * .5; marco.ancho = w; marco.alto = h;
   aplicarPaneoCasa(paneoNivel);
 }
 addEventListener("resize", ajustarTamano);
@@ -998,7 +1030,7 @@ new GLTFLoader().load(CFG.glb, (gltf) => {
     if (/^VINYL_WALL_\d+$/.test(n.name)) vinilos.push(n);
   });
   aplanarPantallas(raiz);
-  prepararInterfaces(raiz); crearLuzProyector(lente, pantalla);
+  prepararInterfaces(raiz); crearLuzProyector(lente, pantalla); crearPuntos();
   if (!camaraGlb) return fallar("El modelo no contiene la cámara principal.");
   const mundo = camaraGlb.matrixWorld.clone(); camaraGlb.removeFromParent(); scene.add(camaraGlb);
   mundo.decompose(camaraGlb.position, camaraGlb.quaternion, camaraGlb.scale); camaraGlb.scale.set(1, 1, 1);
@@ -1037,6 +1069,9 @@ function revelar(porTiempo = false) {
   if (porTiempo) console.warn("carga: se levantó el telón por tiempo, algo no terminó");
   PASOS.forEach((p) => avance(p.clave, 1));
   carga.classList.add("listo");
+  // Los puntos aparecen recién con el telón levantado y ya bien puestos: el
+  // bucle los viene ubicando desde que se cargó el GLB, sólo que invisibles.
+  mostrarPuntos(!acercado);
 }
 setTimeout(() => revelar(true), 15000);
 
@@ -1060,6 +1095,116 @@ async function sortearVinilos() {
 }
 
 function objetoDeZona(zona, preferido) { const o = porZona.get(zona) || []; return o.find((x) => x.name === preferido) || o[0]; }
+
+/* ─── Los puntos y el título ────────────────────────────────────────────────
+ *
+ * Toda la señalización de la habitación es esto: un punto por sección y una
+ * palabra grande abajo. El punto dice DÓNDE se puede entrar y el título dice A
+ * QUÉ, y por eso el título nunca se apaga: sin nada señalado dice el nombre de
+ * la casa. Antes lo que anunciaba la sección era una etiqueta de 9 px pegada al
+ * cursor, ilegible justo cuando había que leerla.
+ */
+const puntos = [];
+let hoverZona = null, tituloActual = null, pieActual = null, tituloSalto = 0, hoverEspera = 0;
+
+/** El centro del VOLUMEN, no el origen: el origen de una malla exportada de
+ *  Blender puede estar en cualquier lado, incluso fuera del objeto. */
+function centroDe(malla) { return new THREE.Box3().setFromObject(malla).getCenter(new THREE.Vector3()); }
+
+/** La malla del grupo que está más cerca del promedio de todas: la del medio. */
+function mallaDelMedio(mallas) {
+  const centros = mallas.map(centroDe);
+  const medio = centros.reduce((a, c) => a.add(c), new THREE.Vector3()).divideScalar(centros.length);
+  let mejor = 0;
+  centros.forEach((c, i) => { if (c.distanceTo(medio) < centros[mejor].distanceTo(medio)) mejor = i; });
+  return mallas[mejor];
+}
+
+function crearPuntos() {
+  Object.keys(REPRESENTANTE).forEach((zona, i) => {
+    const mallas = porZona.get(zona);
+    if (!mallas?.length) return;
+    const ancla = centroDe(ANCLA_AL_MEDIO.has(zona) ? mallaDelMedio(mallas)
+      : objetoDeZona(zona, REPRESENTANTE[zona]));
+
+    const el = document.createElement("button");
+    el.type = "button"; el.className = "punto";
+    el.setAttribute("aria-label", `Abrir ${TITULO_ZONA[zona]}`);
+    // Los cuatro anillos desfasados: latiendo todos juntos parecen un parpadeo
+    // de la página y no cuatro cosas distintas.
+    el.style.setProperty("--fase", `${(i * -.78).toFixed(2)}s`);
+    el.addEventListener("pointerenter", () => ponerHover(zona));
+    el.addEventListener("pointerleave", () => ponerHover(null));
+    el.addEventListener("focus", () => ponerHover(zona));
+    el.addEventListener("blur", () => ponerHover(null));
+    el.addEventListener("click", (e) => { e.stopPropagation(); irAZona(zona); });
+    puntosCapa.appendChild(el);
+    puntos.push({ zona, ancla, el });
+  });
+}
+
+const anclaProyectada = new THREE.Vector3();
+
+function actualizarPuntos() {
+  if (!puntos.length) return;
+  for (const p of puntos) {
+    anclaProyectada.copy(p.ancla).project(camera);
+    // `z >= 1` es "quedó detrás de la cámara": proyectado da una posición
+    // espejada, que sin esto pinta el punto en la otra punta de la pantalla.
+    if (anclaProyectada.z >= 1) { p.el.style.display = "none"; continue; }
+    p.el.style.display = "";
+    p.el.style.transform = `translate3d(${
+      (marco.x + (anclaProyectada.x * .5 + .5) * marco.ancho).toFixed(1)}px,${
+      (marco.y + (-anclaProyectada.y * .5 + .5) * marco.alto).toFixed(1)}px,0)`;
+  }
+}
+
+/** Los puntos son de la habitación: dentro de una sección no señalan nada. */
+function mostrarPuntos(visible) {
+  puntosCapa.classList.toggle("on", visible);
+  if (!visible) ponerHover(null);
+}
+
+/**
+ * El puntero pasa del objeto al punto que tiene encima, y ahí llegan DOS
+ * avisos: el canvas dice que se fue justo antes de que el punto diga que
+ * llegó. Ese "nada" de un cuadro entre los dos disparaba el cambio de palabra
+ * dos veces —INNEN y de vuelta VIDEOS— y se veía como un tartamudeo. Por eso no
+ * se refresca en el aviso sino un pelo después: los dos avisos caen dentro de
+ * la misma espera y el título ve un solo cambio, o ninguno.
+ */
+function ponerHover(zona) {
+  if (hoverZona === zona) return;
+  hoverZona = zona;
+  clearTimeout(hoverEspera);
+  hoverEspera = setTimeout(refrescarTitulo, 70);
+}
+
+/**
+ * Qué dicen los dos renglones. Señalando una sección el de abajo invita a
+ * entrar; en la casa, sin nada señalado, es la firma.
+ *
+ * Adentro de una sección no hay título: se desvanece entero. Mientras está
+ * afuera vuelve a decir el nombre de la casa —sin animación, escondido detrás
+ * del desvanecido— así al volver ya está escrito lo que corresponde y no se ve
+ * ningún cambio de palabra encima del viaje de cámara.
+ */
+function refrescarTitulo() {
+  clearTimeout(hoverEspera);
+  tituloCaja.classList.toggle("oculto", acercado);
+  const zona = acercado ? null : hoverZona;
+  const texto = (zona && TITULO_ZONA[zona]) || MARCA;
+  const pie = zona ? INVITACION : FIRMA;
+  if (texto === tituloActual && pie === pieActual) return;
+  tituloActual = texto; pieActual = pie;
+  clearTimeout(tituloSalto);
+  const escribir = () => { tituloTexto.textContent = texto; tituloPie.textContent = pie; };
+  if (acercado) { tituloSalto = setTimeout(escribir, 400); return; }
+  // Las palabras se cambian con el bloque ya invisible; si se cambiaran antes,
+  // se vería el texto nuevo cayendo con la animación de salida del viejo.
+  tituloCaja.classList.add("cambiando");
+  tituloSalto = setTimeout(() => { escribir(); tituloCaja.classList.remove("cambiando"); }, 210);
+}
 // El nombre de la barra es el control de "habitación": marcado cuando no hay
 // ninguna sección abierta. Antes había un recuadro con el nombre y además un
 // enlace "Habitación" al lado, dos controles para lo mismo.
@@ -1121,7 +1266,8 @@ function irA(malla) {
   vistaWeb = "sitio";   // Web siempre entra por el monitor grande
   volarA(zonaActiva === "web" ? camarasWeb.sitio : camarasSeccion.get(zonaActiva),
     CFG.viajes.seccion, { paneo: 0 });
-  acercado = true; volver.classList.add("on"); intro.style.opacity = "0"; cursorLabel.classList.remove("on");
+  acercado = true; volver.classList.add("on");
+  mostrarPuntos(false); refrescarTitulo();
   renderer.domElement.style.cursor = "default"; activarNav(zonaActiva); activarModulo(zonaActiva);
 }
 function irAZona(zona) { irA(objetoDeZona(zona, REPRESENTANTE[zona])); }
@@ -1129,8 +1275,9 @@ function irACasa() {
   if (!casa) return;
   cerrarVideo(true);
   volarA(casa, CFG.viajes.seccion, { paneo: 1 });
-  acercado = false; zonaActiva = null; volver.classList.remove("on"); intro.style.opacity = "1";
-  cursorLabel.classList.remove("on"); renderer.domElement.style.cursor = "crosshair"; apagarModulos(); activarNav(null);
+  acercado = false; zonaActiva = null; volver.classList.remove("on");
+  mostrarPuntos(revelado); refrescarTitulo();
+  renderer.domElement.style.cursor = "crosshair"; apagarModulos(); activarNav(null);
 }
 
 function actualizarContenido() {
@@ -1524,21 +1671,21 @@ renderer.domElement.addEventListener("pointerdown", (e) => {
 
 renderer.domElement.addEventListener("pointermove", (e) => {
   mouse.x = THREE.MathUtils.clamp(e.clientX / innerWidth * 2 - 1, -1, 1); mouse.y = THREE.MathUtils.clamp(-((e.clientY - 58) / Math.max(1, innerHeight - 58)) * 2 + 1, -1, 1);
-  cursorLabel.style.left = e.clientX + "px"; cursorLabel.style.top = e.clientY + "px";
-  if (!casa) return cursorLabel.classList.remove("on");
+  if (!casa) return;
   coordenadasCanvas(e); rayo.setFromCamera(puntero, camera);
   if (acercado) {
     // Fuera de un botón el cursor queda normal. La lupa con menos anunciaba un
     // "alejar" que no es lo que pasa, y ensuciaba toda la sección.
     const ui = rayo.intersectObjects(hotspotsActivos(), false)[0];
-    cursorLabel.classList.remove("on"); renderer.domElement.style.cursor = ui ? "pointer" : "default"; return;
+    renderer.domElement.style.cursor = ui ? "pointer" : "default"; return;
   }
+  // El objeto entero sigue siendo clicable —el punto es el señalador, no el
+  // único blanco—, y señalarlo dice lo mismo que señalar el punto.
   const golpe = rayo.intersectObjects(clicables, false)[0];
   renderer.domElement.style.cursor = golpe ? "pointer" : "crosshair";
-  if (golpe) { cursorLabel.textContent = `ABRIR ${golpe.object.userData.zona_titulo || golpe.object.userData.zona}`; cursorLabel.classList.add("on"); }
-  else cursorLabel.classList.remove("on");
+  ponerHover(golpe ? golpe.object.userData.zona : null);
 });
-renderer.domElement.addEventListener("pointerleave", () => { cursorLabel.classList.remove("on"); renderer.domElement.style.cursor = "crosshair"; });
+renderer.domElement.addEventListener("pointerleave", () => { ponerHover(null); renderer.domElement.style.cursor = "crosshair"; });
 
 document.querySelectorAll("[data-zone]").forEach((b) => b.addEventListener("click", () => irAZona(b.dataset.zone)));
 document.querySelectorAll("[data-home]").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); irACasa(); }));
@@ -1757,6 +1904,9 @@ function bucle() {
   // paneo ya está donde tiene que estar cuando el regreso lo vuelve a encender.
   mouseSuave.lerp(mouse, suave(CFG.paneoSuavidad, dt));
   aplicarPaneoCasa(paneoNivel);
+  // Después del paneo: el recorte de la cámara mueve la proyección, y con el
+  // orden al revés los puntos irían un cuadro atrasados y temblarían.
+  actualizarPuntos();
   composer.render();
 }
 bucle();
