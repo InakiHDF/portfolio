@@ -8,8 +8,8 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 // Sin eso el navegador sirve la copia vieja de su caché y parece que editar el
 // archivo no hizo nada. `tools/servidor.py` manda `no-store` para lo mismo, pero
 // una entrada ya guardada de antes sobrevive igual: el número la invalida.
-import { crearAvatar } from "./avatar.js?v=58";
-import { CONTENIDO } from "./contenido.js?v=58";
+import { crearAvatar } from "./avatar.js?v=60";
+import { CONTENIDO } from "./contenido.js?v=60";
 
 const CFG = {
   glb: "./modelos/habitacion-console-ui.glb?v=1",
@@ -100,12 +100,44 @@ const PALETA = { fondo: "#171816", panel: "#292a27", azul: "#758c99", naranja: "
  */
 const TIRA_VIDEO = CONTENIDO.video.length > 1 ? 128 : 0;
 
+/**
+ * WEB · monitor principal (1030×600).
+ *
+ * Grilla de dos columnas con el mismo margen en los cuatro lados (60 arriba y
+ * a la izquierda, 62 abajo y a la derecha). A la izquierda el texto —título,
+ * dirección, descripción y botón, todos contra el MISMO borde izquierdo—; a la
+ * derecha la zona reservada del logo.
+ *
+ * La medianera es angosta (46 px) a propósito: con un hueco grande en el medio
+ * las dos columnas dejan de leerse como una sola ficha y la pantalla parece
+ * vacía. Y el tope y el pie de la zona del logo caen exactamente sobre la
+ * altura de mayúscula del título y sobre la base del botón: las dos columnas
+ * arrancan y terminan juntas, que es lo que las ata.
+ */
+const WEB_COL_X = 60, WEB_COL_W = 430;
+const WEB_LOGO_ZONA = [536, 62, 434, 476];
+const WEB_BASE_TITULO = 114, WEB_BASE_URL = 156, WEB_BASE_DESC = 210, WEB_INTERLINEA = 29;
+
+/**
+ * WEB · monitor chico (720×415) — la lista de sitios, en filas fijas que se
+ * scrollean. `FILAS_VISIBLES_WEB` es cuántas entran de una: los hotspots se
+ * crean una sola vez por fila visible y cambian de sitio al scrollear, en vez
+ * de recrearse por cada ítem de `CONTENIDO.web` como antes — así entran tantos
+ * sitios como hagan falta sin tocar el layout.
+ */
+const FILAS_VISIBLES_WEB = 3;
+const WEB_SIDE_HEADER = 54, WEB_SIDE_PAD = 10, WEB_SIDE_GAP = 10;
+const WEB_SIDE_ROW_H = 107, WEB_SIDE_ROW_X = 24, WEB_SIDE_ROW_W = 648;
+const WEB_SIDE_SCROLLBAR_X = 682, WEB_SIDE_SCROLLBAR_W = 6;
+
 const RECTS = {
   videoPlay: [886, 675 - TIRA_VIDEO - 163, 250, 74],
   videoFicha: (i) => [24 + i * 296, 675 - TIRA_VIDEO + 16, 284, 96],
-  webVisitar: [72, 470, 300, 78],
-  webElegir: [400, 470, 360, 78],
-  webFila: (i) => [28, 78 + i * 106, 664, 92],
+  webVisitar: [WEB_COL_X, 470, WEB_COL_W, 68],
+  webElegir: [788, 12, 190, 42],
+  webFila: (slot) => [WEB_SIDE_ROW_X, WEB_SIDE_HEADER + WEB_SIDE_PAD + slot * (WEB_SIDE_ROW_H + WEB_SIDE_GAP), WEB_SIDE_ROW_W, WEB_SIDE_ROW_H],
+  webScrollUp: [668, 8, 40, 20],
+  webScrollDown: [668, 30, 40, 20],
 };
 
 const REPRESENTANTE = { web: "MONITOR_MAIN_PANEL", video: "SCREEN_SURFACE", texto: "NOTEBOOK_EAST", musica: "VINYL_WALL_01" };
@@ -320,6 +352,8 @@ let camaraVideoFrente = null, avatar = null;
 // Web tiene dos vistas, una por monitor, y se viaja de una a la otra.
 const camarasWeb = { sitio: null, indice: null };
 let vistaWeb = "sitio";
+let scrollWeb = 0;
+const filasHotspotsWeb = [];
 const posActual = new THREE.Vector3(), vistaAuxiliar = new THREE.Vector3();
 const mouse = new THREE.Vector2(), mouseSuave = new THREE.Vector2(), puntero = new THREE.Vector2();
 const rayo = new THREE.Raycaster();
@@ -451,6 +485,76 @@ function textoAjustado(ctx, texto, x, y, ancho, altoLinea, maxLineas = 4) {
   pintarLineas(ctx, partirEnLineas(ctx, texto, ancho).slice(0, maxLineas), x, y, altoLinea);
 }
 
+/** Achica una tipografía de a 2 px hasta que el texto entra en el ancho dado. */
+function tamañoQueEntra(ctx, texto, familia, peso, anchoMax, desde, hasta = 28) {
+  let tam = desde;
+  ctx.font = `${peso} ${tam}px ${familia}`;
+  while (tam > hasta && ctx.measureText(texto).width > anchoMax) {
+    tam -= 2;
+    ctx.font = `${peso} ${tam}px ${familia}`;
+  }
+  return tam;
+}
+
+/** Copy provisorio: un lorem se lee como un párrafo y deja ver el bloque real. */
+const DESCRIPCION_PLACEHOLDER = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.";
+
+/**
+ * El interletrado del contexto, donde el navegador lo soporte.
+ *
+ * Toda la tipografía chica del sitio va espaciada (ver el CSS de `.brand` o de
+ * `#volver`). Sin esto los rótulos del monitor eran los únicos sin tracking y
+ * se notaba: parecían de otro sistema.
+ */
+function espaciado(ctx, valor) { if ("letterSpacing" in ctx) ctx.letterSpacing = valor; }
+
+/**
+ * La flecha ↗, DIBUJADA y no escrita.
+ *
+ * El glifo ↗ no existe ni en Arial Narrow ni en Courier New: el navegador lo
+ * saca de una tipografía de respaldo y sale más chico que el texto, con otro
+ * grosor y apoyado en otra línea de base. Trazada acá tiene exactamente el
+ * tamaño de la altura de mayúscula y el grosor del texto que acompaña.
+ */
+function flechaDiagonal(ctx, cx, cy, tam, color, grosor) {
+  const medio = tam * .5, barba = tam * .52;
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = grosor;
+  ctx.lineCap = "square"; ctx.lineJoin = "miter";
+  ctx.beginPath();
+  ctx.moveTo(cx - medio, cy + medio); ctx.lineTo(cx + medio, cy - medio);
+  ctx.moveTo(cx + medio - barba, cy - medio); ctx.lineTo(cx + medio, cy - medio); ctx.lineTo(cx + medio, cy - medio + barba);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/**
+ * Un rótulo y su flecha como UN bloque, alineable por izquierda, centro o
+ * derecha. Centrar sólo el texto y colgar la flecha afuera descentra el
+ * conjunto, que es lo que pasaba en el botón.
+ */
+function textoConFlecha(ctx, texto, x, y, tam, color, alineacion = "left") {
+  const anchoTexto = ctx.measureText(texto).width, hueco = tam * .85;
+  const total = anchoTexto + hueco + tam;
+  const izq = alineacion === "center" ? x - total * .5 : alineacion === "right" ? x - total : x;
+  ctx.fillStyle = color; ctx.textAlign = "left";
+  ctx.fillText(texto, izq, y);
+  flechaDiagonal(ctx, izq + anchoTexto + hueco + tam * .5, y - tam * .36, tam, color, Math.max(2, tam * .14));
+}
+
+/** Una flecha de scroll, en su estado habilitado o apagado. */
+function dibujarChevron(ctx, rect, dir, activo) {
+  const [x, y, w, h] = rect;
+  ctx.fillStyle = activo ? "#2c2e29" : "#1e1f1c"; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = activo ? PALETA.naranja : "#3a3b36"; ctx.lineWidth = 1.5;
+  ctx.strokeRect(x + .5, y + .5, w - 1, h - 1);
+  const cx = x + w / 2, cy = y + h / 2, r = 6;
+  ctx.beginPath();
+  if (dir === "up") { ctx.moveTo(cx - r, cy + r * .5); ctx.lineTo(cx, cy - r * .5); ctx.lineTo(cx + r, cy + r * .5); }
+  else { ctx.moveTo(cx - r, cy - r * .5); ctx.lineTo(cx, cy + r * .5); ctx.lineTo(cx + r, cy - r * .5); }
+  ctx.strokeStyle = activo ? "#efe9dc" : "#55564f"; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.stroke();
+}
+
 /** El marco de una imagen que todavía no llegó: nunca un hueco blanco. */
 function marcoVacio(ctx, x, y, w, h, color) {
   const g = ctx.createLinearGradient(x, y, x + w, y + h);
@@ -516,43 +620,61 @@ function dibujarVideo() {
 }
 
 /**
- * El logo del sitio sobre una placa clara.
+ * El logo del sitio, dentro de la zona que tiene reservada.
  *
- * Los tres favicons son muy distintos entre sí —un lettering amarillo sin
- * fondo, un cuadrado color crema, un círculo negro— y sobre el carbón de la
- * interfaz el negro directamente desaparece. La placa los iguala: todos se leen
- * y ninguno pierde su forma. El logo va contenido, nunca recortado: un logo
- * recortado deja de ser el logo.
+ * SIN PLACA. Antes iba sobre una placa clara porque los favicons de entonces
+ * eran oscuros y sobre el carbón de la interfaz desaparecían. Los logos de
+ * ahora son los de verdad y los tres son claros —el amarillo de helicopters,
+ * el crema de Cru y de Opus—, así que la placa hacía justo lo contrario:
+ * un crema sobre un crema no se ve. Van directo sobre el fondo del monitor.
+ *
+ * IGUAL TAMAÑO, NO IGUAL ANCHO. Los tres tienen proporciones muy distintas
+ * (2,46 el de Cru contra 1,19 el de Opus). Encajándolos por el lado más largo
+ * todos terminan con el mismo ancho, y ahí el casi cuadrado se ve MUCHO más
+ * grande que los apaisados porque ocupa el doble de superficie. Lo que iguala
+ * dos formas distintas a la vista es el área, no el ancho: cada logo se escala
+ * para cubrir la misma superficie y recién ahí se lo limita a la zona, para
+ * que uno muy apaisado no se salga por los costados.
  */
-function dibujarLogo(ctx, item, x, y, lado) {
-  ctx.fillStyle = "#efece2"; ctx.fillRect(x, y, lado, lado);
-  ctx.strokeStyle = "rgba(30,28,24,.22)"; ctx.lineWidth = 2;
-  ctx.strokeRect(x + 1, y + 1, lado - 2, lado - 2);
+const AREA_LOGO = .36;   // qué parte de su zona cubre un logo
 
+function dibujarLogo(ctx, item, x, y, w, h, margen = Math.min(w, h) * .09) {
   const img = imagen(item.logo);
-  const margen = lado * .16, hueco = lado - margen * 2;
-  if (img) {
-    const escala = Math.min(hueco / img.width, hueco / img.height);
-    const iw = img.width * escala, ih = img.height * escala;
-    ctx.drawImage(img, x + (lado - iw) * .5, y + (lado - ih) * .5, iw, ih);
+  const huecoW = w - margen * 2, huecoH = h - margen * 2;
+
+  if (!img) {
+    // Sin logo todavía: la inicial del sitio. Nunca un hueco.
+    ctx.fillStyle = item.color;
+    ctx.font = `700 ${Math.round(Math.min(huecoW, huecoH) * .5)}px Arial Narrow, Arial`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(item.titulo[0].toUpperCase(), x + w * .5, y + h * .5);
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     return;
   }
-  // Sin favicon usable: la inicial del sitio. Nunca un hueco.
-  ctx.fillStyle = item.color;
-  ctx.font = `700 ${Math.round(lado * .52)}px Arial Narrow, Arial`;
-  ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText(item.titulo[0].toUpperCase(), x + lado * .5, y + lado * .54);
-  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+
+  const escala = Math.min(
+    Math.sqrt(huecoW * huecoH * AREA_LOGO / (img.width * img.height)),
+    huecoW / img.width, huecoH / img.height);
+  const lw = img.width * escala, lh = img.height * escala;
+  ctx.drawImage(img, x + (w - lw) * .5, y + (h - lh) * .5, lw, lh);
+}
+
+/** Mantiene visible en el índice la fila del sitio activo al cambiar de ítem. */
+function asegurarVisibleWeb() {
+  if (INDICE.web < scrollWeb) scrollWeb = INDICE.web;
+  else if (INDICE.web >= scrollWeb + FILAS_VISIBLES_WEB) scrollWeb = INDICE.web - FILAS_VISIBLES_WEB + 1;
+  scrollWeb = THREE.MathUtils.clamp(scrollWeb, 0, Math.max(0, CONTENIDO.web.length - FILAS_VISIBLES_WEB));
 }
 
 /**
  * WEB — el monitor grande es el sitio y el chico es el índice.
  *
- * El diseño anterior metía una captura de la página en el monitor grande y la
- * lista de sitios en el chico, escrita en 15 px y mirada desde 2,6 m: ilegible.
- * Ahora cada monitor tiene su propia cámara —ver `CFG.encuadreWebSitio` y
- * `encuadreWebIndice`— y su propio contenido, dibujado para la distancia desde
- * la que se lo mira. Nada de capturas: los logos.
+ * El principal va en dos columnas sobre la grilla de `WEB_COL_X` y
+ * `WEB_LOGO_ZONA`: a la izquierda título, dirección, descripción (todavía un
+ * lorem, sin copy definitivo) y el botón; a la derecha la zona del logo. El
+ * índice es una lista con scroll: sólo entran `FILAS_VISIBLES_WEB` filas de
+ * una, así que agregar un sitio a `contenido.js` no rompe el layout por más que
+ * la lista crezca.
  */
 function dibujarWeb() {
   const main = superficies.webMain, side = superficies.webSide, item = CONTENIDO.web[INDICE.web];
@@ -562,48 +684,89 @@ function dibujarWeb() {
   let ctx = main.ctx;
   let w = main.canvas.width, h = main.canvas.height;
   ctx.fillStyle = "#1b1c19"; ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = "#2a2c27"; ctx.fillRect(0, 0, w, 56);
-  ctx.fillStyle = PALETA.naranja; ctx.fillRect(0, 0, 7, 56);
-  ctx.fillStyle = "#96928a"; ctx.font = "700 21px Courier New";
-  ctx.fillText(item.url.replace(/^https?:\/\/(www\.)?/, ""), 30, 37);
 
-  dibujarLogo(ctx, item, 72, 110, 250);
+  // El título manda sobre el resto de la columna: se achica hasta entrar en
+  // ella, así un nombre largo no se sale ni pisa la zona del logo.
+  const tituloUp = item.titulo.toUpperCase();
+  const tamTitulo = tamañoQueEntra(ctx, tituloUp, "Arial Narrow, Arial", 700, WEB_COL_W, 72, 34);
+  ctx.fillStyle = "#f1ede2"; ctx.font = `700 ${tamTitulo}px Arial Narrow, Arial`;
+  ctx.fillText(tituloUp, WEB_COL_X, WEB_BASE_TITULO);
 
-  ctx.fillStyle = "#f1ede2"; ctx.font = "700 66px Arial Narrow, Arial";
-  ctx.fillText(item.titulo.toUpperCase(), 366, 178);
-  ctx.fillStyle = PALETA.naranja; ctx.font = "700 21px Courier New";
-  ctx.fillText(`${item.tipo.toUpperCase()} / ${item.fecha}`, 368, 216);
-  ctx.fillStyle = "#a29d92"; ctx.font = "24px Verdana";
-  textoAjustado(ctx, item.descripcion, 368, 274, 600, 34, 3);
+  espaciado(ctx, ".04em");
+  ctx.fillStyle = PALETA.gris; ctx.font = "700 22px Courier New";
+  ctx.fillText(item.url.replace(/^https?:\/\/(www\.)?/, ""), WEB_COL_X, WEB_BASE_URL);
+  espaciado(ctx, "0px");
 
-  const visitar = RECTS.webVisitar, elegir = RECTS.webElegir;
+  // Verdana es la tipografía de texto del sitio (ver el CSS del `body`), pero
+  // a 24 px al lado de un título de 72 pesaba tanto como el título. A 19 con
+  // 29 de interlínea vuelve a leerse como lo que es: el párrafo.
+  ctx.fillStyle = "#9b968c"; ctx.font = "19px Verdana, Arial, sans-serif";
+  textoAjustado(ctx, DESCRIPCION_PLACEHOLDER, WEB_COL_X, WEB_BASE_DESC, WEB_COL_W, WEB_INTERLINEA, 8);
+
+  const elegir = RECTS.webElegir;
+  espaciado(ctx, ".1em");
+  ctx.font = "700 19px Courier New";
+  textoConFlecha(ctx, "ELEGIR OTRO", elegir[0] + elegir[2], elegir[1] + 30, 15, PALETA.gris, "right");
+  espaciado(ctx, "0px");
+
+  const visitar = RECTS.webVisitar;
   ctx.fillStyle = PALETA.naranja; ctx.fillRect(...visitar);
-  ctx.fillStyle = "#1c1a16"; ctx.font = "700 24px Courier New"; ctx.textAlign = "center";
-  ctx.fillText("VISITAR ↗", visitar[0] + visitar[2] * .5, visitar[1] + 50);
-  ctx.fillStyle = "#33352f"; ctx.fillRect(...elegir);
-  ctx.fillStyle = "#ded9cb";
-  ctx.fillText(`ELEGIR OTRO  (${CONTENIDO.web.length})`, elegir[0] + elegir[2] * .5, elegir[1] + 50);
-  ctx.textAlign = "left";
+  espaciado(ctx, ".12em");
+  ctx.font = "700 24px Courier New";
+  textoConFlecha(ctx, "VISITAR", visitar[0] + visitar[2] * .5, visitar[1] + 44, 20, "#1c1a16", "center");
+  espaciado(ctx, "0px");
+
+  dibujarLogo(ctx, item, ...WEB_LOGO_ZONA);
   main.texture.needsUpdate = true;
 
   /* ── El índice, en el monitor chico ── */
+  asegurarVisibleWeb();
   ctx = side.ctx;
   w = side.canvas.width; h = side.canvas.height;
   ctx.fillStyle = "#1b1c19"; ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = "#2a2c27"; ctx.fillRect(0, 0, w, 58);
-  ctx.fillStyle = PALETA.naranja; ctx.fillRect(0, 0, 7, 58);
-  ctx.fillStyle = "#96928a"; ctx.font = "700 22px Courier New";
-  ctx.fillText("ELEGIR SITIO", 30, 39);
+  espaciado(ctx, ".1em");
+  ctx.fillStyle = PALETA.gris; ctx.font = "700 22px Courier New";
+  ctx.fillText("ELEGIR SITIO", 24, 34);
 
-  CONTENIDO.web.forEach((p, i) => {
-    const [x, y, ancho, alto] = RECTS.webFila(i), activo = i === INDICE.web;
+  const total = CONTENIDO.web.length;
+  const desde = scrollWeb + 1, hasta = Math.min(scrollWeb + FILAS_VISIBLES_WEB, total);
+  ctx.fillStyle = "#6f6c64"; ctx.font = "700 18px Courier New"; ctx.textAlign = "right";
+  ctx.fillText(`${desde}–${hasta} / ${total}`, 656, 34);
+  ctx.textAlign = "left"; espaciado(ctx, "0px");
+
+  for (let slot = 0; slot < FILAS_VISIBLES_WEB; slot++) {
+    const idx = scrollWeb + slot;
+    filasHotspotsWeb[slot].userData.uiAction = idx < total ? `web-select-${idx}` : null;
+    if (idx >= total) continue;
+    const p = CONTENIDO.web[idx], activo = idx === INDICE.web;
+    const [x, y, ancho, alto] = RECTS.webFila(slot);
     ctx.fillStyle = activo ? "#33352f" : "#232420"; ctx.fillRect(x, y, ancho, alto);
     ctx.fillStyle = activo ? PALETA.naranja : "#45463f"; ctx.fillRect(x, y, 6, alto);
-    dibujarLogo(ctx, p, x + 22, y + 10, alto - 20);
-    ctx.fillStyle = activo ? "#f1ede2" : "#918c82";
-    ctx.font = "700 34px Arial Narrow, Arial";
-    ctx.fillText(p.titulo.toUpperCase(), x + alto + 30, y + alto * .5 + 12);
-  });
+    const ladoLogo = alto - 24;
+    dibujarLogo(ctx, p, x + 22, y + 12, ladoLogo, ladoLogo);
+    const textX = x + 22 + ladoLogo + 26;
+    ctx.fillStyle = activo ? "#f1ede2" : "#918c82"; ctx.font = "700 30px Arial Narrow, Arial";
+    ctx.fillText(p.titulo.toUpperCase(), textX, y + alto * .42);
+    espaciado(ctx, ".04em");
+    ctx.fillStyle = activo ? PALETA.gris : "#5c5952"; ctx.font = "700 18px Courier New";
+    ctx.fillText(p.url.replace(/^https?:\/\/(www\.)?/, ""), textX, y + alto * .42 + 30);
+    espaciado(ctx, "0px");
+  }
+
+  const puedeSubir = scrollWeb > 0, puedeBajar = scrollWeb + FILAS_VISIBLES_WEB < total;
+  dibujarChevron(ctx, RECTS.webScrollUp, "up", puedeSubir);
+  dibujarChevron(ctx, RECTS.webScrollDown, "down", puedeBajar);
+
+  if (total > FILAS_VISIBLES_WEB) {
+    const trackY = WEB_SIDE_HEADER + WEB_SIDE_PAD;
+    const trackH = FILAS_VISIBLES_WEB * WEB_SIDE_ROW_H + (FILAS_VISIBLES_WEB - 1) * WEB_SIDE_GAP;
+    ctx.fillStyle = "#242521"; ctx.fillRect(WEB_SIDE_SCROLLBAR_X, trackY, WEB_SIDE_SCROLLBAR_W, trackH);
+    const maxScroll = total - FILAS_VISIBLES_WEB;
+    const thumbH = Math.max(24, trackH * (FILAS_VISIBLES_WEB / total));
+    const thumbY = trackY + (maxScroll > 0 ? (trackH - thumbH) * (scrollWeb / maxScroll) : 0);
+    ctx.fillStyle = PALETA.naranja; ctx.fillRect(WEB_SIDE_SCROLLBAR_X, thumbY, WEB_SIDE_SCROLLBAR_W, thumbH);
+  }
+
   side.texture.needsUpdate = true;
 }
 
@@ -960,11 +1123,17 @@ function prepararInterfaces(raiz) {
   // eligiendo. Si no, se pueden clickear por accidente desde la otra cámara,
   // donde se ven de unos pocos píxeles.
   hotspotDeCanvas("WEB_VISITAR", webMain, superficies.webMain, RECTS.webVisitar, "web-visitar", 1.08).userData.uiVista = "sitio";
-  hotspotDeCanvas("WEB_ELEGIR", webMain, superficies.webMain, RECTS.webElegir, "web-elegir", 1.08).userData.uiVista = "sitio";
-  CONTENIDO.web.forEach((_, i) => {
-    hotspotDeCanvas(`WEB_FILA_${i}`, webSide, superficies.webSide, RECTS.webFila(i), `web-select-${i}`, 1.02)
-      .userData.uiVista = "indice";
-  });
+  hotspotDeCanvas("WEB_ELEGIR", webMain, superficies.webMain, RECTS.webElegir, "web-elegir", 1.3).userData.uiVista = "sitio";
+  // Un hotspot por FILA VISIBLE, no por sitio: al scrollear, `dibujarWeb` les
+  // cambia la acción para que apunten al sitio que quedó en esa fila. Así el
+  // índice escala a cualquier cantidad de sitios sin tocar esta parte.
+  for (let slot = 0; slot < FILAS_VISIBLES_WEB; slot++) {
+    const fila = hotspotDeCanvas(`WEB_FILA_${slot}`, webSide, superficies.webSide, RECTS.webFila(slot), null, 1.0);
+    fila.userData.uiVista = "indice";
+    filasHotspotsWeb.push(fila);
+  }
+  hotspotDeCanvas("WEB_SCROLL_UP", webSide, superficies.webSide, RECTS.webScrollUp, "web-scroll-up", 1.15).userData.uiVista = "indice";
+  hotspotDeCanvas("WEB_SCROLL_DOWN", webSide, superficies.webSide, RECTS.webScrollDown, "web-scroll-down", 1.15).userData.uiVista = "indice";
 
   // El frontal del proyector: exactamente perpendicular a la tela y encuadrado
   // sobre ella. Es adonde viaja la cámara ANTES de abrir el reproductor.
@@ -1346,6 +1515,8 @@ function ejecutarAccion(golpe) {
   }
   else if (action === "web-visitar") abrir(CONTENIDO.web[INDICE.web].url);
   else if (action === "web-elegir") verWeb("indice");
+  else if (action === "web-scroll-up") { if (scrollWeb > 0) { scrollWeb--; dibujarWeb(); } }
+  else if (action === "web-scroll-down") { if (scrollWeb + FILAS_VISIBLES_WEB < CONTENIDO.web.length) { scrollWeb++; dibujarWeb(); } }
   else if (action?.startsWith("web-select-")) {
     const indice = Number(action.slice(action.lastIndexOf("-") + 1));
     if (indice !== INDICE.web) cambiarItem(indice > INDICE.web ? 1 : -1, indice);
@@ -1923,6 +2094,11 @@ window.__sala = {
   reproducir: abrirVideo, cerrarVideo: () => cerrarVideo(false),
   // Para el pendiente del dorso de la hoja que gira (ver `prepararLibro`).
   hoja: () => ({ derecha: hojaDer, izquierda: hojaIzq, pivot: pageTurnPivot }),
+
+  // El canvas plano de una interfaz, sin la perspectiva del monitor. Es como se
+  // revisa el diseño de una pantalla —márgenes, grilla, tamaños— sin tener que
+  // leerla torcida y a contraluz dentro de la escena.
+  lienzos: () => superficies,
 
   // Dónde cae cada área clicable en la ventana. Sirve para comprobar que un
   // botón dibujado y su hotspot terminaron en el mismo lugar.

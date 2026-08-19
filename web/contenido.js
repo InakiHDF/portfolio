@@ -15,7 +15,7 @@
 export const CONTENIDO = {
   "web": [
     {
-      "titulo": "helicopters.ar",
+      "titulo": "helicopters",
       "tipo": "Sitio institucional",
       "fecha": "2026",
       "descripcion": "Trabajo aéreo y alta montaña.",

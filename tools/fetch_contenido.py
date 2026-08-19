@@ -47,7 +47,7 @@ SUBSTACK = "https://inakigongorarosi.substack.com"
 # título que trae cada sitio.
 SITIOS = [
     {
-        "nombre": "helicopters.ar",
+        "nombre": "helicopters",
         "tipo": "Sitio institucional",
         "fecha": "2026",
         "url": "https://www.helicopters.com.ar",
@@ -248,6 +248,15 @@ def textos():
     return salida
 
 
+# Los sitios cuyo logo está hecho a mano y NO se baja de ningún lado.
+#
+# Un favicon no es un logo: es un cuadradito pensado para 16 px en una pestaña.
+# Los de estos tres se reemplazaron por la marca de verdad —recortada, tratada
+# y con el fondo sacado— y bajar el favicon otra vez los pisaría. Sacar un slug
+# de acá hace que vuelva a bajarse el favicon en la próxima corrida.
+LOGOS_A_MANO = {"helicopters", "cru", "opus"}
+
+
 def logo(sitio):
     """El favicon del sitio, el mismo que se ve en la pestaña del navegador.
 
@@ -260,6 +269,10 @@ def logo(sitio):
     destino = CONTENIDO / "logos" / f"{sitio['slug']}.png"
     destino.parent.mkdir(parents=True, exist_ok=True)
     base = sitio["captura_url"]
+
+    if sitio["slug"] in LOGOS_A_MANO and destino.exists():
+        print(f"    logo {sitio['nombre']}: a mano, se deja como está")
+        return f"./contenido/logos/{sitio['slug']}.png"
 
     candidatos = []
     try:
